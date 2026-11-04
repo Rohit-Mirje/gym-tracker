@@ -1,6 +1,6 @@
 {
-  "name": "LiftTap - Zero-Friction Gym Logger",
-  "short_name": "LiftTap",
+  "name": "Lift Set Go - Zero-Friction Gym Logger",
+  "short_name": "Lift Set Go",
   "description": "Fast gym workout and bodyweight tracker with 1-tap set logging, ghost numbers, notepad sync, and rest timer.",
   "start_url": "./index.html",
   "display": "standalone",

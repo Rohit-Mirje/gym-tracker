@@ -1,4 +1,4 @@
-const CACHE_NAME = 'lifttap-cache-v2';
+const CACHE_NAME = 'liftsetgo-cache-v1';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',

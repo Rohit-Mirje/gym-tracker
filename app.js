@@ -1,5 +1,5 @@
 /**
- * LiftTap - Zero-Friction Gym Tracker
+ * Lift Set Go - Zero-Friction Gym Tracker
  * Architecture: Local-First, Mobile Ergonomic PWA
  */
 
@@ -8,10 +8,10 @@
 
   // --- Constants & Keys ---
   const MAX_SETS_PER_EXERCISE = 4;
-  const STORAGE_WORKOUTS = 'lifttap_workouts_v1';
-  const STORAGE_WEIGHTS = 'lifttap_bodyweights_v1';
-  const STORAGE_SPLITS = 'lifttap_splits_v1';
-  const STORAGE_SETTINGS = 'lifttap_settings_v1';
+  const STORAGE_WORKOUTS = 'liftsetgo_workouts_v1';
+  const STORAGE_WEIGHTS = 'liftsetgo_bodyweights_v1';
+  const STORAGE_SPLITS = 'liftsetgo_splits_v1';
+  const STORAGE_SETTINGS = 'liftsetgo_settings_v1';
 
   // Default Split Routines
   const DEFAULT_SPLITS = {
@@ -184,7 +184,12 @@
   // --- Storage Helpers ---
   function loadFromStorage(key, fallback) {
     try {
-      const data = localStorage.getItem(key);
+      let data = localStorage.getItem(key);
+      if (!data) {
+        // Fallback to legacy key if migrating from earlier test
+        const legacyKey = key.replace('liftsetgo_', 'lifttap_');
+        data = localStorage.getItem(legacyKey);
+      }
       return data ? JSON.parse(data) : fallback;
     } catch (e) {
       return fallback;
@@ -1235,9 +1240,9 @@
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
       navigator.serviceWorker.register('sw.js').then(reg => {
-        console.log('LiftTap ServiceWorker registered:', reg.scope);
+        console.log('Lift Set Go ServiceWorker registered:', reg.scope);
       }).catch(err => {
-        console.log('LiftTap ServiceWorker registration failed:', err);
+        console.log('Lift Set Go ServiceWorker registration failed:', err);
       });
     });
   }

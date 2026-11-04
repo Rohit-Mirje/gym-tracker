@@ -1,4 +1,4 @@
-# ⚡ LiftTap — Zero-Friction Gym & Bodyweight Tracker
+# ⚡ Lift Set Go — Zero-Friction Gym & Bodyweight Tracker
 
 A modern, mobile-first **Progressive Web App (PWA)** built to replace tedious Notepad gym logs with **sub-3-second, zero-hassle logging**.
 
@@ -9,14 +9,14 @@ A modern, mobile-first **Progressive Web App (PWA)** built to replace tedious No
 
 ---
 
-## 💡 Why LiftTap?
+## 💡 Why Lift Set Go?
 
 Logging workouts in a smartphone notepad between sets is slow, repetitive, and clunky with sweaty hands:
 * Re-typing exercise names every session.
 * Scrolling back up to recall: *"What weight and reps did I hit last week?"*
 * Manually typing body weight and doing mental plate math.
 
-**LiftTap eliminates the friction.** When you open today's workout, your previous records are already waiting as ghost values. Confirm last week's numbers with **1 tap**, or use quick `+` / `-` steppers to log progressive overload.
+**Lift Set Go eliminates the friction.** When you open today's workout, your previous records are already waiting as ghost values. Confirm last week's numbers with **1 tap**, or use quick `+` / `-` steppers to log progressive overload.
 
 ---
 
@@ -49,7 +49,7 @@ Logging workouts in a smartphone notepad between sets is slow, repetitive, and c
 
 ## 📱 How to Install on Mobile
 
-LiftTap is a standalone Progressive Web App. You do not need to download anything from the App Store or Google Play.
+Lift Set Go is a standalone Progressive Web App. You do not need to download anything from the App Store or Google Play.
 
 ### Android (Google Chrome)
 1. Open your hosted URL in **Chrome**.
@@ -67,7 +67,7 @@ LiftTap is a standalone Progressive Web App. You do not need to download anythin
 
 ## 🚀 Free Hosting & Deployment
 
-Since LiftTap is a pure static web application (HTML, CSS, JavaScript), you can host it for free in seconds:
+Since Lift Set Go is a pure static web application (HTML, CSS, JavaScript), you can host it for free in seconds:
 
 ### Option 1: GitHub Pages (Recommended)
 1. Push this repository to GitHub.
