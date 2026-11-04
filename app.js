@@ -107,6 +107,9 @@
   seedInitialSampleData();
 
   // --- DOM Elements ---
+  const elAppName = document.querySelector('.app-name');
+  if (elAppName) elAppName.textContent = 'Lift Set Go';
+
   const elDateRelative = document.getElementById('date-label-relative');
   const elDateFull = document.getElementById('date-label-full');
   const btnPrevDay = document.getElementById('btn-prev-day');
@@ -1240,6 +1243,7 @@
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
       navigator.serviceWorker.register('sw.js').then(reg => {
+        reg.update();
         console.log('Lift Set Go ServiceWorker registered:', reg.scope);
       }).catch(err => {
         console.log('Lift Set Go ServiceWorker registration failed:', err);
