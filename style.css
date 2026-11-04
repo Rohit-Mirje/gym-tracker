@@ -404,6 +404,59 @@ body {
   cursor: pointer;
 }
 
+.btn-text-action.danger {
+  color: var(--danger);
+}
+
+.empty-workout-card {
+  text-align: center;
+  padding: 36px 16px;
+  background: var(--bg-card);
+  border: 1px dashed var(--border-subtle);
+  border-radius: var(--radius-lg);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.empty-icon {
+  font-size: 2rem;
+  margin-bottom: 2px;
+}
+
+.empty-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #fff;
+}
+
+.empty-sub {
+  font-size: 0.8rem;
+  color: var(--text-dim);
+  max-width: 280px;
+  line-height: 1.4;
+}
+
+.btn-load-template {
+  margin-top: 10px;
+  padding: 10px 20px;
+  border-radius: var(--radius-full);
+  background: rgba(16, 185, 129, 0.15);
+  border: 1px solid rgba(16, 185, 129, 0.4);
+  color: var(--primary);
+  font-family: var(--font-sans);
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-load-template:active {
+  transform: scale(0.95);
+  background: rgba(16, 185, 129, 0.25);
+}
+
 .split-pills-container {
   display: flex;
   gap: 8px;

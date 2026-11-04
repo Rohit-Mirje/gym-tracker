@@ -209,6 +209,10 @@
 
   // --- Seed Initial Sample Data ---
   function seedInitialSampleData() {
+    const hasBeenSeeded = localStorage.getItem('liftsetgo_seeded_v1');
+    if (hasBeenSeeded) return;
+    localStorage.setItem('liftsetgo_seeded_v1', 'true');
+
     if (Object.keys(workouts).length === 0) {
       const pastDate1 = new Date();
       pastDate1.setDate(pastDate1.getDate() - 3);
@@ -434,29 +438,46 @@
     }
 
     // Workout Data
-    const todayWorkout = workouts[selectedDate] || { split: currentSplit, exercises: [] };
+    let todayWorkout = workouts[selectedDate];
     exercisesListContainer.innerHTML = '';
 
-    // If no exercises recorded yet for today, pre-populate from the split template
-    let exercisesToRender = todayWorkout.exercises;
-    if ((!exercisesToRender || exercisesToRender.length === 0) && splits[currentSplit]) {
-      // Build empty exercise shells from the routine template
-      exercisesToRender = splits[currentSplit].map(name => ({
-        name: name,
-        sets: []
-      }));
-      todayWorkout.exercises = exercisesToRender;
+    if (!todayWorkout) {
+      todayWorkout = { split: currentSplit, exercises: [] };
       workouts[selectedDate] = todayWorkout;
       saveToStorage(STORAGE_WORKOUTS, workouts);
     }
 
+    const exercisesToRender = todayWorkout.exercises || [];
+
     if (exercisesToRender.length === 0) {
+      const templateExercises = splits[currentSplit] || [];
       exercisesListContainer.innerHTML = `
-        <div style="text-align: center; padding: 32px 16px; color: var(--text-dim);">
-          <p>No exercises in this split yet.</p>
-          <p style="font-size: 0.8rem; margin-top: 4px;">Tap "+ Add Exercise to Today" below.</p>
+        <div class="empty-workout-card">
+          <div class="empty-icon">📋</div>
+          <p class="empty-title">No exercises for today</p>
+          <p class="empty-sub">Add custom exercises below, or load your default ${escapeHTML(currentSplit)} routine.</p>
+          ${templateExercises.length > 0 ? `
+            <button id="btn-load-template" class="btn-load-template">
+              ⚡ Load ${escapeHTML(currentSplit)} Routine (${templateExercises.length} exercises)
+            </button>
+          ` : ''}
         </div>
       `;
+
+      const btnLoadTemplate = document.getElementById('btn-load-template');
+      if (btnLoadTemplate) {
+        btnLoadTemplate.addEventListener('click', () => {
+          triggerHaptic('light');
+          todayWorkout.exercises = templateExercises.map(name => ({
+            name: name,
+            sets: []
+          }));
+          workouts[selectedDate] = todayWorkout;
+          saveToStorage(STORAGE_WORKOUTS, workouts);
+          renderWorkoutView();
+          showToast(`Loaded ${currentSplit} routine!`);
+        });
+      }
       return;
     }
 
@@ -1234,6 +1255,25 @@
   }
 
   // --- Initialize App ---
+  const btnClearToday = document.getElementById('btn-clear-today');
+  if (btnClearToday) {
+    btnClearToday.addEventListener('click', () => {
+      const todayWorkout = workouts[selectedDate];
+      if (!todayWorkout || !todayWorkout.exercises || todayWorkout.exercises.length === 0) {
+        showToast("Today's workout is already empty");
+        return;
+      }
+      if (confirm("Clear all exercises for today?")) {
+        triggerHaptic('light');
+        todayWorkout.exercises = [];
+        workouts[selectedDate] = todayWorkout;
+        saveToStorage(STORAGE_WORKOUTS, workouts);
+        renderWorkoutView();
+        showToast("Cleared exercises for today");
+      }
+    });
+  }
+
   btnWakeLock.addEventListener('click', toggleWakeLock);
 
   renderSplitPills();
