@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>LiftTap - Zero-Friction Gym Tracker</title>
+  <meta name="description" content="Effortless gym workout & bodyweight tracker with 1-tap logging, ghost sets, notepad importer, and rest timer.">
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#0b0f19">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <link rel="stylesheet" href="style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div id="app" class="app-shell">
+    
+    <!-- Top Navigation Header -->
+    <header class="top-nav">
+      <div class="nav-brand">
+        <div class="brand-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="m6.5 6.5 11 11"/>
+            <path d="m21 21-1-1"/>
+            <path d="m3 3 1 1"/>
+            <path d="m18 22 4-4"/>
+            <path d="m2 6 4-4"/>
+            <path d="m3 10 7-7"/>
+            <path d="m14 21 7-7"/>
+          </svg>
+        </div>
+        <div class="brand-text">
+          <span class="app-name">LiftTap</span>
+          <span class="app-tagline">Fast Gym Logger</span>
+        </div>
+      </div>
+
+      <div class="header-actions">
+        <!-- Screen Wake Lock Toggle -->
+        <button id="btn-wakelock" class="btn-icon" title="Keep screen awake during workout" aria-label="Toggle Screen Awake">
+          <svg id="icon-screen-lock" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="5"/>
+            <line x1="12" y1="1" x2="12" y2="3"/>
+            <line x1="12" y1="21" x2="12" y2="23"/>
+            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+            <line x1="1" y1="12" x2="3" y2="12"/>
+            <line x1="21" y1="12" x2="23" y2="12"/>
+            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+          </svg>
+        </button>
+
+        <!-- Notepad Import / Export Modal Trigger -->
+        <button id="btn-notepad-modal" class="btn-icon highlight" title="Import / Export Notepad Notes" aria-label="Notepad Tool">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+            <polyline points="14 2 14 8 20 8"/>
+            <line x1="16" y1="13" x2="8" y2="13"/>
+            <line x1="16" y1="17" x2="8" y2="17"/>
+            <polyline points="10 9 9 9 8 9"/>
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- Main Navigation Tabs: Log Workout / History / Exercises -->
+    <nav class="main-tabs">
+      <button class="nav-tab active" data-tab="tab-workout">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M6 4v16M18 4v16M2 8h4M2 16h4M18 8h4M18 16h4M6 12h12"/></svg>
+        <span>Workout</span>
+      </button>
+      <button class="nav-tab" data-tab="tab-history">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        <span>History</span>
+      </button>
+      <button class="nav-tab" data-tab="tab-bodyweight">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M20.42 4.58a5.4 5.4 0 0 0-7.65 0l-.77.78-.77-.78a5.4 5.4 0 0 0-7.65 7.65l.78.78L12 20.66l7.65-7.65.78-.78a5.4 5.4 0 0 0 0-7.65z"/></svg>
+        <span>Body Weight</span>
+      </button>
+    </nav>
+
+    <!-- TAB 1: WORKOUT LOGGER -->
+    <main id="tab-workout" class="tab-content active">
+      
+      <!-- Date Bar with Day Stepper -->
+      <section class="date-stepper-card">
+        <button id="btn-prev-day" class="btn-step" aria-label="Previous Day">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+        <div class="date-info">
+          <span id="date-label-relative" class="date-badge">Today</span>
+          <h2 id="date-label-full" class="date-display">Wednesday, Nov 4</h2>
+        </div>
+        <button id="btn-next-day" class="btn-step" aria-label="Next Day">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+        </button>
+      </section>
+
+      <!-- Fast Body Weight Check-in Strip -->
+      <section class="weight-strip-card">
+        <div class="weight-strip-left">
+          <div class="weight-icon">⚖️</div>
+          <div>
+            <div class="weight-title">Body Weight</div>
+            <div class="weight-sub" id="weight-history-hint">Tap steppers to adjust</div>
+          </div>
+        </div>
+
+        <div class="weight-strip-controls">
+          <button class="btn-stepper-sm" id="btn-bw-minus-pt5">-0.5</button>
+          <button class="btn-stepper-sm" id="btn-bw-minus-pt1">-0.1</button>
+          
+          <div class="weight-input-wrapper">
+            <input type="number" id="input-body-weight" step="0.1" placeholder="--" inputmode="decimal">
+            <span class="weight-unit">kg</span>
+          </div>
+
+          <button class="btn-stepper-sm" id="btn-bw-plus-pt1">+0.1</button>
+          <button class="btn-stepper-sm" id="btn-bw-plus-pt5">+0.5</button>
+        </div>
+      </section>
+
+      <!-- Split Selector Horizontal Scroller -->
+      <section class="split-selector-section">
+        <div class="section-header">
+          <span class="section-title">TODAY'S SPLIT</span>
+          <button id="btn-manage-splits" class="btn-text-action">Edit Splits</button>
+        </div>
+        <div class="split-pills-container" id="split-pills">
+          <!-- Populated by JS: Push, Pull, Legs, Upper, Lower, etc. -->
+        </div>
+      </section>
+
+      <!-- Exercises List for the Selected Split -->
+      <section class="exercises-container" id="exercises-list">
+        <!-- Rendered dynamically -->
+      </section>
+
+      <!-- Add Exercise to Routine Button -->
+      <div class="add-exercise-bar">
+        <button id="btn-open-add-exercise" class="btn-primary-outline">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Add Exercise to Today
+        </button>
+      </div>
+
+    </main>
+
+    <!-- TAB 2: HISTORY -->
+    <section id="tab-history" class="tab-content">
+      <div class="history-header">
+        <h2>Workout History</h2>
+        <span class="history-count" id="history-total-count">0 workouts</span>
+      </div>
+
+      <div class="history-list" id="history-items-container">
+        <!-- Populated dynamically -->
+      </div>
+    </section>
+
+    <!-- TAB 3: BODY WEIGHT TREND -->
+    <section id="tab-bodyweight" class="tab-content">
+      <div class="bw-header">
+        <h2>Weight Journey</h2>
+        <p class="section-subtitle">Track your daily body weight and 7-day average</p>
+      </div>
+
+      <div class="bw-summary-cards">
+        <div class="summary-card">
+          <span class="summary-label">Current Weight</span>
+          <span class="summary-val" id="bw-current-display">-- kg</span>
+        </div>
+        <div class="summary-card">
+          <span class="summary-label">7-Day Average</span>
+          <span class="summary-val" id="bw-7d-avg-display">-- kg</span>
+        </div>
+        <div class="summary-card">
+          <span class="summary-label">30-Day Change</span>
+          <span class="summary-val" id="bw-change-display">-- kg</span>
+        </div>
+      </div>
+
+      <!-- Quick Canvas Chart -->
+      <div class="chart-card">
+        <div class="chart-header">
+          <span class="chart-title">Last 30 Days Weight Trend</span>
+        </div>
+        <canvas id="weightCanvas" width="360" height="180"></canvas>
+      </div>
+
+      <!-- Weight History Table -->
+      <div class="bw-log-card">
+        <h3>Recent Weight Logs</h3>
+        <div class="bw-logs-list" id="bw-logs-list">
+          <!-- Populated by JS -->
+        </div>
+      </div>
+    </section>
+
+    <!-- Floating Rest Timer Dock -->
+    <aside id="rest-timer-dock" class="rest-timer-dock hidden">
+      <div class="timer-progress-ring">
+        <svg width="44" height="44" viewBox="0 0 44 44">
+          <circle cx="22" cy="22" r="18" class="timer-track"/>
+          <circle cx="22" cy="22" r="18" id="timer-bar" class="timer-bar"/>
+        </svg>
+        <span id="timer-display" class="timer-digits">01:30</span>
+      </div>
+
+      <div class="timer-info">
+        <span class="timer-label">REST TIMER</span>
+        <span id="timer-exercise-name" class="timer-sub">Bench Press</span>
+      </div>
+
+      <div class="timer-actions">
+        <button id="btn-timer-plus30" class="btn-timer-ctrl" title="Add 30 seconds">+30s</button>
+        <button id="btn-timer-dismiss" class="btn-timer-ctrl skip" title="Skip Rest">Skip</button>
+      </div>
+    </aside>
+
+  </div>
+
+  <!-- MODAL 1: NOTEPAD IMPORT & EXPORT -->
+  <div id="modal-notepad" class="modal-overlay hidden">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div class="modal-title-wrap">
+          <span class="modal-icon">📝</span>
+          <h3>Notepad Sync & Tool</h3>
+        </div>
+        <button class="btn-close-modal" id="btn-close-notepad">✕</button>
+      </div>
+
+      <div class="modal-tabs">
+        <button class="modal-tab active" data-modaltab="tab-import">Import from Notepad</button>
+        <button class="modal-tab" data-modaltab="tab-export">Export to Notepad</button>
+      </div>
+
+      <!-- Import Panel -->
+      <div id="tab-import" class="modal-panel active">
+        <p class="modal-hint">
+          Paste your raw notes below. The smart parser automatically extracts exercise names, weights, reps, and body weight!
+        </p>
+        <textarea id="notepad-import-text" class="notepad-textarea" placeholder="Example:
+Push Day - 74.5 kg
+Bench Press: 75kg 8 reps
+Incline Dumbbell: 26kg 10 reps
+Lateral Raise: 10kg 12 reps
+Tricep Pushdown: 25kg 15 reps"></textarea>
+        
+        <div class="modal-buttons">
+          <button id="btn-parse-notepad" class="btn-action primary">
+            ⚡ Parse & Import Workout
+          </button>
+        </div>
+
+        <div id="import-preview-box" class="import-preview hidden">
+          <!-- Preview after parse -->
+        </div>
+      </div>
+
+      <!-- Export Panel -->
+      <div id="tab-export" class="modal-panel">
+        <p class="modal-hint">
+          Here is your selected workout formatted cleanly for Notepad. Tap copy to clipboard!
+        </p>
+        <textarea id="notepad-export-text" class="notepad-textarea readonly" readonly></textarea>
+        
+        <div class="modal-buttons">
+          <button id="btn-copy-export" class="btn-action primary">
+            📋 Copy to Clipboard
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL 2: ADD / SEARCH EXERCISE -->
+  <div id="modal-exercise" class="modal-overlay hidden">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>Add Exercise</h3>
+        <button class="btn-close-modal" id="btn-close-exercise-modal">✕</button>
+      </div>
+
+      <div class="exercise-search-box">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="text" id="exercise-search-input" placeholder="Search or type new exercise name...">
+      </div>
+
+      <div class="exercise-quick-list" id="exercise-quick-list">
+        <!-- Rendered dynamically from library -->
+      </div>
+
+      <div class="custom-exercise-create">
+        <button id="btn-create-custom-exercise" class="btn-action primary">
+          + Add "<span id="new-exercise-name-preview">Exercise</span>" to Today
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div id="toast" class="toast hidden"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>
