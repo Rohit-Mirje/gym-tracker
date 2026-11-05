@@ -1279,10 +1279,51 @@
   renderSplitPills();
   renderWorkoutView();
 
+  // --- PWA Installation Handler ---
+  let deferredInstallPrompt = null;
+  const btnInstallPwa = document.getElementById('btn-install-pwa');
+  const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+
+  if (!isStandalone && btnInstallPwa) {
+    btnInstallPwa.classList.remove('hidden');
+
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredInstallPrompt = e;
+      btnInstallPwa.classList.remove('hidden');
+    });
+
+    btnInstallPwa.addEventListener('click', async () => {
+      triggerHaptic('light');
+      if (deferredInstallPrompt) {
+        deferredInstallPrompt.prompt();
+        const { outcome } = await deferredInstallPrompt.userChoice;
+        if (outcome === 'accepted') {
+          showToast("Installing Lift Set Go... 🚀");
+          btnInstallPwa.classList.add('hidden');
+        }
+        deferredInstallPrompt = null;
+      } else {
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+        if (isIOS) {
+          alert("To install on iPhone:\n1. Open in Safari\n2. Tap Share (⎋ at bottom)\n3. Tap 'Add to Home Screen'");
+        } else {
+          showToast("Tap browser menu (⋮) -> 'Install App' or 'Add to Home Screen'");
+        }
+      }
+    });
+
+    window.addEventListener('appinstalled', () => {
+      showToast("Lift Set Go installed successfully! 🎉");
+      btnInstallPwa.classList.add('hidden');
+      deferredInstallPrompt = null;
+    });
+  }
+
   // Register PWA Service Worker if supported
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-      navigator.serviceWorker.register('sw.js').then(reg => {
+      navigator.serviceWorker.register('./sw.js', { scope: './' }).then(reg => {
         reg.update();
         console.log('Lift Set Go ServiceWorker registered:', reg.scope);
       }).catch(err => {

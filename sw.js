@@ -1,6 +1,5 @@
-const CACHE_NAME = 'liftsetgo-v3';
+const CACHE_NAME = 'liftsetgo-v4';
 const ASSETS_TO_CACHE = [
-  './',
   './index.html',
   './style.css',
   './app.js',
@@ -9,16 +8,24 @@ const ASSETS_TO_CACHE = [
   './icon-512.png'
 ];
 
-// Install: Cache offline shell
+// Install: Cache offline shell safely
 self.addEventListener('install', (event) => {
+  self.skipWaiting();
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(ASSETS_TO_CACHE);
-    }).then(() => self.skipWaiting())
+    caches.open(CACHE_NAME).then(async (cache) => {
+      // Cache each asset individually so one error never blocks the service worker
+      for (const asset of ASSETS_TO_CACHE) {
+        try {
+          await cache.add(asset);
+        } catch (err) {
+          console.warn('Could not precache:', asset, err);
+        }
+      }
+    })
   );
 });
 
-// Activate: Clean up old caches
+// Activate: Clean up old caches immediately
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((keys) => {
@@ -35,14 +42,12 @@ self.addEventListener('activate', (event) => {
 
 // Fetch: Network first with offline cache fallback
 self.addEventListener('fetch', (event) => {
-  // Only handle GET requests
   if (event.request.method !== 'GET') return;
 
   event.respondWith(
     fetch(event.request)
       .then((response) => {
-        // Cache copy if valid
-        if (response && response.status === 200) {
+        if (response && response.status === 200 && response.type === 'basic') {
           const responseClone = response.clone();
           caches.open(CACHE_NAME).then((cache) => {
             cache.put(event.request, responseClone);

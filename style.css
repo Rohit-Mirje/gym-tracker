@@ -129,6 +129,31 @@ body {
   gap: 8px;
 }
 
+.btn-install-badge {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.25) 0%, rgba(5, 150, 105, 0.25) 100%);
+  border: 1px solid var(--primary);
+  color: #fff;
+  font-family: var(--font-sans);
+  font-size: 0.76rem;
+  font-weight: 700;
+  padding: 8px 12px;
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  box-shadow: 0 0 12px var(--primary-glow);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.btn-install-badge:active {
+  transform: scale(0.93);
+}
+
+.btn-install-badge.hidden {
+  display: none !important;
+}
+
 .btn-icon {
   background: var(--bg-card);
   border: 1px solid var(--border-subtle);
