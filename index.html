@@ -249,8 +249,9 @@
       </div>
 
       <div class="modal-tabs">
-        <button class="modal-tab active" data-modaltab="tab-import">Import from Notepad</button>
-        <button class="modal-tab" data-modaltab="tab-export">Export to Notepad</button>
+        <button class="modal-tab active" data-modaltab="tab-import">Import Notes</button>
+        <button class="modal-tab" data-modaltab="tab-export">Export Notes</button>
+        <button class="modal-tab" data-modaltab="tab-reset">Reset / Clean</button>
       </div>
 
       <!-- Import Panel -->
@@ -286,6 +287,18 @@ Tricep Pushdown: 25kg 15 reps"></textarea>
         <div class="modal-buttons">
           <button id="btn-copy-export" class="btn-action primary">
             📋 Copy to Clipboard
+          </button>
+        </div>
+      </div>
+
+      <!-- Reset / Clean Panel -->
+      <div id="tab-reset" class="modal-panel">
+        <p class="modal-hint">
+          Want a completely fresh start? Tap below to erase all logged workouts and body weights stored on this phone.
+        </p>
+        <div style="margin-top: 14px;">
+          <button id="btn-reset-all-data" class="btn-action" style="background: rgba(239, 68, 68, 0.15); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.4); width: 100%;">
+            🗑️ Reset All Data & Start Fresh
           </button>
         </div>
       </div>

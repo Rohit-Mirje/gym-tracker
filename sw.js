@@ -1,4 +1,4 @@
-const CACHE_NAME = 'liftsetgo-v4';
+const CACHE_NAME = 'liftsetgo-v5';
 const ASSETS_TO_CACHE = [
   './index.html',
   './style.css',

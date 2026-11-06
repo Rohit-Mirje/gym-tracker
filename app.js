@@ -103,8 +103,8 @@
   // Audio Context for Chimes
   let audioCtx = null;
 
-  // Seed sample initial data if completely empty so user has instant context
-  seedInitialSampleData();
+  // Auto-purge any legacy mock seed data if present
+  autoPurgeMockSeedData();
 
   // --- DOM Elements ---
   const elAppName = document.querySelector('.app-name');
@@ -207,54 +207,23 @@
     }
   }
 
-  // --- Seed Initial Sample Data ---
-  function seedInitialSampleData() {
-    const hasBeenSeeded = localStorage.getItem('liftsetgo_seeded_v1');
-    if (hasBeenSeeded) return;
-    localStorage.setItem('liftsetgo_seeded_v1', 'true');
-
-    if (Object.keys(workouts).length === 0) {
-      const pastDate1 = new Date();
-      pastDate1.setDate(pastDate1.getDate() - 3);
-      const pastKey1 = formatDateKey(pastDate1);
-
-      workouts[pastKey1] = {
-        split: "Push",
-        exercises: [
-          {
-            name: "Barbell Bench Press",
-            sets: [
-              { weight: 70, reps: 10, isPR: false },
-              { weight: 75, reps: 8, isPR: false },
-              { weight: 75, reps: 7, isPR: false }
-            ]
-          },
-          {
-            name: "Incline Dumbbell Press",
-            sets: [
-              { weight: 24, reps: 10, isPR: false },
-              { weight: 26, reps: 8, isPR: false }
-            ]
-          },
-          {
-            name: "Lateral Raise",
-            sets: [
-              { weight: 10, reps: 12, isPR: false },
-              { weight: 10, reps: 12, isPR: false }
-            ]
-          }
-        ]
-      };
-
-      bodyWeights[pastKey1] = 74.8;
-      
-      const yesterday = new Date();
-      yesterday.setDate(yesterday.getDate() - 1);
-      const yKey = formatDateKey(yesterday);
-      bodyWeights[yKey] = 74.4;
-
-      saveToStorage(STORAGE_WORKOUTS, workouts);
-      saveToStorage(STORAGE_WEIGHTS, bodyWeights);
+  // --- Auto-Purge Legacy Mock Seed Data ---
+  function autoPurgeMockSeedData() {
+    const isMockCleaned = localStorage.getItem('liftsetgo_mock_purged_v2');
+    if (!isMockCleaned) {
+      localStorage.setItem('liftsetgo_mock_purged_v2', 'true');
+      const dates = Object.keys(workouts);
+      // If the workouts only contain the single legacy mock workout, clear it
+      if (dates.length <= 1) {
+        const d = dates[0];
+        const w = d ? workouts[d] : null;
+        if (w && w.exercises && w.exercises.some(e => e.name === "Barbell Bench Press" && e.sets && e.sets.some(s => s.weight === 70))) {
+          workouts = {};
+          bodyWeights = {};
+          saveToStorage(STORAGE_WORKOUTS, workouts);
+          saveToStorage(STORAGE_WEIGHTS, bodyWeights);
+        }
+      }
     }
   }
 
@@ -372,8 +341,8 @@
     }
 
     return {
-      ghostWeight: ghostWeight || 50,
-      ghostReps: ghostReps || 8,
+      ghostWeight: ghostWeight,
+      ghostReps: ghostReps,
       lastDate: lastDate,
       allTimeMaxWeight,
       allTimeMaxReps,
@@ -502,8 +471,8 @@
     }
 
     // Default input values: either the last set from today, or the ghost values
-    let defaultWeight = bench.ghostWeight;
-    let defaultReps = bench.ghostReps;
+    let defaultWeight = bench.hasHistory ? bench.ghostWeight : "";
+    let defaultReps = bench.hasHistory ? bench.ghostReps : "";
 
     if (ex.sets && ex.sets.length > 0) {
       const lastLoggedSet = ex.sets[ex.sets.length - 1];
@@ -534,7 +503,7 @@
           <div class="input-block">
             <span class="input-label">Weight (kg)</span>
             <div class="input-with-steppers">
-              <input type="number" step="0.5" class="num-input ex-weight-input" value="${defaultWeight}" ${isComplete ? 'disabled' : ''}>
+              <input type="number" step="0.5" class="num-input ex-weight-input" value="${defaultWeight}" placeholder="kg" ${isComplete ? 'disabled' : ''}>
             </div>
             <div class="quick-steppers-bar">
               <button class="btn-chip-step" data-w="-2.5" ${isComplete ? 'disabled' : ''}>-2.5</button>
@@ -547,7 +516,7 @@
           <div class="input-block">
             <span class="input-label">Reps (Max)</span>
             <div class="input-with-steppers">
-              <input type="number" step="1" class="num-input ex-reps-input" value="${defaultReps}" ${isComplete ? 'disabled' : ''}>
+              <input type="number" step="1" class="num-input ex-reps-input" value="${defaultReps}" placeholder="reps" ${isComplete ? 'disabled' : ''}>
             </div>
             <div class="quick-steppers-bar">
               <button class="btn-chip-step" data-r="-1" ${isComplete ? 'disabled' : ''}>-1</button>
@@ -1255,6 +1224,25 @@
   }
 
   // --- Initialize App ---
+  const btnResetAllData = document.getElementById('btn-reset-all-data');
+  if (btnResetAllData) {
+    btnResetAllData.addEventListener('click', () => {
+      if (confirm("Reset all workouts, body weight logs, and history on this device? This will give you a completely clean, fresh app.")) {
+        triggerHaptic('alarm');
+        workouts = {};
+        bodyWeights = {};
+        saveToStorage(STORAGE_WORKOUTS, workouts);
+        saveToStorage(STORAGE_WEIGHTS, bodyWeights);
+        localStorage.setItem('liftsetgo_seeded_v1', 'true');
+        localStorage.setItem('liftsetgo_mock_purged_v2', 'true');
+        modalNotepad.classList.add('hidden');
+        renderSplitPills();
+        renderWorkoutView();
+        showToast("App reset successfully to clean state! 🧼");
+      }
+    });
+  }
+
   const btnClearToday = document.getElementById('btn-clear-today');
   if (btnClearToday) {
     btnClearToday.addEventListener('click', () => {
