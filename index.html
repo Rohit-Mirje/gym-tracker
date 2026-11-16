@@ -230,10 +230,15 @@
       </div>
 
       <div class="timer-actions">
+        <button id="btn-timer-pip" class="btn-timer-ctrl pip" title="Float timer over other apps">⧉ Float</button>
         <button id="btn-timer-plus30" class="btn-timer-ctrl" title="Add 30 seconds">+30s</button>
         <button id="btn-timer-dismiss" class="btn-timer-ctrl skip" title="Skip Rest">Skip</button>
       </div>
     </aside>
+
+    <!-- Hidden Video & Canvas for Floating Picture-in-Picture Timer -->
+    <canvas id="pip-canvas" width="360" height="200" style="display:none;"></canvas>
+    <video id="pip-video" playsinline muted style="display:none;"></video>
 
   </div>
 

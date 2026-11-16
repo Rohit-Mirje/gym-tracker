@@ -96,6 +96,12 @@
   let restTimerInterval = null;
   let restTimeRemaining = 0;
   let restTotalDuration = 90;
+  let restEndTime = 0;
+  let currentTimerExercise = "";
+  let pipCanvas = null;
+  let pipCtx = null;
+  let pipVideo = null;
+  let pipActive = false;
 
   // Wake Lock Sentinel
   let wakeLock = null;
@@ -488,7 +494,7 @@
         <div>
           <div style="display: flex; align-items: center; gap: 8px;">
             <h3 class="exercise-name">${escapeHTML(ex.name)}</h3>
-            <span class="set-progress-pill ${isComplete ? 'complete' : ''}">${currentSetCount}/${MAX_SETS_PER_EXERCISE} Sets</span>
+            <span class="set-progress-pill ${isComplete ? 'complete' : ''}">${currentSetCount === 0 ? '0 Sets' : (isComplete ? 'Set 4 (Done ✓)' : `Set ${currentSetCount}`)}</span>
           </div>
           <div class="exercise-last-bench">${benchText}</div>
         </div>
@@ -531,12 +537,12 @@
         ${isComplete ? `
           <button class="btn-log-set completed" disabled>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-            All 4 Sets Completed ✓
+            Set 4 Completed ✓
           </button>
         ` : `
           <button class="btn-log-set" data-action="log-set">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
-            Log Set ${currentSetCount + 1} / ${MAX_SETS_PER_EXERCISE}
+            Log Set ${currentSetCount + 1}
           </button>
         `}
       </div>
@@ -612,13 +618,13 @@
 
         if (ex.sets.length >= MAX_SETS_PER_EXERCISE) {
           triggerHaptic('success');
-          showToast(`🎉 All 4 sets complete for ${ex.name}!`);
+          showToast(`🎉 Set 4 completed for ${ex.name}!`);
         } else if (isPR) {
           triggerHaptic('success');
           showToast(`🔥 NEW PR! ${weight}kg × ${reps} reps!`);
         } else {
           triggerHaptic('light');
-          showToast(`Set ${ex.sets.length} / ${MAX_SETS_PER_EXERCISE} logged! (${weight}kg × ${reps})`);
+          showToast(`Set ${ex.sets.length} logged! (${weight}kg × ${reps})`);
         }
 
         // Start Rest Timer
@@ -664,19 +670,201 @@
     );
   }
 
-  // --- Floating Rest Timer Controller ---
+  // --- Floating Rest Timer Controller & Picture-in-Picture Engine ---
+  const btnTimerPip = document.getElementById('btn-timer-pip');
+
+  function initPiP() {
+    if (pipCanvas && pipVideo) return;
+    pipCanvas = document.getElementById('pip-canvas');
+    if (!pipCanvas) {
+      pipCanvas = document.createElement('canvas');
+      pipCanvas.id = 'pip-canvas';
+      pipCanvas.width = 360;
+      pipCanvas.height = 200;
+      pipCanvas.style.display = 'none';
+      document.body.appendChild(pipCanvas);
+    }
+    pipCtx = pipCanvas.getContext('2d');
+
+    pipVideo = document.getElementById('pip-video');
+    if (!pipVideo) {
+      pipVideo = document.createElement('video');
+      pipVideo.id = 'pip-video';
+      pipVideo.muted = true;
+      pipVideo.playsInline = true;
+      pipVideo.style.display = 'none';
+      document.body.appendChild(pipVideo);
+    }
+
+    try {
+      if (pipCanvas.captureStream) {
+        pipVideo.srcObject = pipCanvas.captureStream(12);
+        pipVideo.play().catch(() => {});
+      }
+    } catch (e) {
+      console.warn("captureStream error:", e);
+    }
+
+    pipVideo.addEventListener('enterpictureinpicture', () => {
+      pipActive = true;
+      if (btnTimerPip) {
+        btnTimerPip.classList.add('active');
+        btnTimerPip.textContent = '⧉ Floating';
+      }
+    });
+
+    pipVideo.addEventListener('leavepictureinpicture', () => {
+      pipActive = false;
+      if (btnTimerPip) {
+        btnTimerPip.classList.remove('active');
+        btnTimerPip.textContent = '⧉ Float';
+      }
+    });
+  }
+
+  function drawPiPFrame(timeStr, exerciseName, progress, isDone = false) {
+    initPiP();
+    if (!pipCtx) return;
+    const w = 360;
+    const h = 200;
+
+    if (isDone) {
+      // Completed state (green celebration)
+      pipCtx.fillStyle = '#064e3b';
+      pipCtx.fillRect(0, 0, w, h);
+
+      pipCtx.fillStyle = '#10b981';
+      pipCtx.fillRect(0, 0, w, 6);
+
+      pipCtx.fillStyle = '#a7f3d0';
+      pipCtx.font = 'bold 15px sans-serif';
+      pipCtx.textAlign = 'center';
+      pipCtx.fillText('REST INTERVAL COMPLETE', w / 2, 50);
+
+      pipCtx.fillStyle = '#ffffff';
+      pipCtx.font = 'bold 32px sans-serif';
+      pipCtx.fillText('TIME TO LIFT! 💪', w / 2, 110);
+
+      pipCtx.fillStyle = '#6ee7b7';
+      pipCtx.font = '14px sans-serif';
+      pipCtx.fillText((exerciseName || 'Next Set').toUpperCase(), w / 2, 150);
+    } else {
+      // Resting countdown state
+      pipCtx.fillStyle = '#090b10';
+      pipCtx.fillRect(0, 0, w, h);
+
+      // Accent amber top line
+      pipCtx.fillStyle = '#f59e0b';
+      pipCtx.fillRect(0, 0, w, 5);
+
+      // Exercise label
+      pipCtx.fillStyle = '#94a3b8';
+      pipCtx.font = 'bold 14px sans-serif';
+      pipCtx.textAlign = 'center';
+      const cleanEx = (exerciseName || 'REST TIMER').toUpperCase();
+      pipCtx.fillText(cleanEx.length > 22 ? cleanEx.slice(0, 20) + '...' : cleanEx, w / 2, 42);
+
+      // Big countdown time
+      pipCtx.fillStyle = '#ffffff';
+      pipCtx.font = 'bold 64px monospace';
+      pipCtx.fillText(timeStr, w / 2, 112);
+
+      // Progress bar track
+      const barW = 280;
+      const barH = 10;
+      const barX = (w - barW) / 2;
+      const barY = 138;
+
+      pipCtx.fillStyle = 'rgba(255, 255, 255, 0.12)';
+      pipCtx.beginPath();
+      pipCtx.roundRect(barX, barY, barW, barH, 5);
+      pipCtx.fill();
+
+      // Progress bar fill
+      pipCtx.fillStyle = '#f59e0b';
+      pipCtx.beginPath();
+      pipCtx.roundRect(barX, barY, Math.max(10, barW * progress), barH, 5);
+      pipCtx.fill();
+
+      // Subtitle
+      pipCtx.fillStyle = '#64748b';
+      pipCtx.font = '11px sans-serif';
+      pipCtx.fillText('LIFT SET GO • REST TIMER', w / 2, 178);
+    }
+  }
+
+  async function togglePictureInPicture() {
+    initPiP();
+    if (!('pictureInPictureEnabled' in document) || !pipVideo) {
+      showToast("Picture-in-Picture not supported on this browser");
+      return;
+    }
+    try {
+      if (document.pictureInPictureElement) {
+        await document.exitPictureInPicture();
+      } else {
+        await pipVideo.play();
+        await pipVideo.requestPictureInPicture();
+        showToast("Timer floating over screen! ⧉");
+      }
+    } catch (err) {
+      console.warn("PiP error:", err);
+      showToast("Tap 'Float' again to allow overlay window");
+    }
+  }
+
+  function requestNotificationPermission() {
+    if ('Notification' in window && Notification.permission === 'default') {
+      try {
+        Notification.requestPermission();
+      } catch (e) {}
+    }
+  }
+
+  function sendTimerNotification(exerciseName) {
+    if ('Notification' in window && Notification.permission === 'granted') {
+      try {
+        new Notification("Rest Finished! 💪", {
+          body: `Time for your next set of ${exerciseName || 'exercise'}!`,
+          icon: './icon-192.png',
+          badge: './icon-192.png',
+          tag: 'rest-timer-finished',
+          renotify: true,
+          vibrate: [200, 100, 200, 100, 300]
+        });
+      } catch (e) {
+        if (navigator.serviceWorker && navigator.serviceWorker.ready) {
+          navigator.serviceWorker.ready.then(reg => {
+            reg.showNotification("Rest Finished! 💪", {
+              body: `Time for your next set of ${exerciseName || 'exercise'}!`,
+              icon: './icon-192.png',
+              vibrate: [200, 100, 200, 100, 300]
+            });
+          }).catch(() => {});
+        }
+      }
+    }
+  }
+
   function startRestTimer(exerciseName) {
+    currentTimerExercise = exerciseName || "Rest Interval";
     restTimeRemaining = settings.defaultRestSec || 90;
     restTotalDuration = restTimeRemaining;
+    restEndTime = Date.now() + (restTimeRemaining * 1000);
 
-    timerExerciseName.textContent = exerciseName || "Rest Interval";
+    timerExerciseName.textContent = currentTimerExercise;
     restTimerDock.classList.remove('hidden');
+
+    // Request notification permission if first time
+    requestNotificationPermission();
 
     clearInterval(restTimerInterval);
     updateTimerDisplay();
 
+    // High precision timestamp delta interval
     restTimerInterval = setInterval(() => {
-      restTimeRemaining--;
+      const now = Date.now();
+      restTimeRemaining = Math.max(0, Math.ceil((restEndTime - now) / 1000));
       if (restTimeRemaining <= 0) {
         clearInterval(restTimerInterval);
         restTimerInterval = null;
@@ -690,26 +878,57 @@
   function updateTimerDisplay() {
     const mins = Math.floor(restTimeRemaining / 60);
     const secs = restTimeRemaining % 60;
-    timerDisplay.textContent = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+    const timeStr = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+    timerDisplay.textContent = timeStr;
 
     // SVG dashoffset calculation: circumference = 2 * PI * 18 ~= 113.1
     const circumference = 113.1;
     const progress = (restTimeRemaining / restTotalDuration);
     const offset = circumference * (1 - progress);
     timerBar.style.strokeDashoffset = offset;
+
+    // Update browser title so it's visible in browser tabs
+    document.title = `⏱️ ${timeStr} - Rest | Lift Set Go`;
+
+    // Render into Picture-in-Picture floating frame
+    drawPiPFrame(timeStr, currentTimerExercise, progress, false);
   }
 
   function onRestTimerFinished() {
     playChime();
     triggerHaptic('alarm');
     showToast("Rest Over! Time to lift 💪");
-    restTimerDock.classList.add('hidden');
+    document.title = "⚡ Time to Lift! | Lift Set Go";
+
+    // Update Picture-in-Picture frame to celebrate
+    drawPiPFrame("00:00", currentTimerExercise, 0, true);
+
+    // Send native system notification (for when user is outside the app or phone locked)
+    sendTimerNotification(currentTimerExercise);
+
+    // Auto-hide the in-app dock after 4 seconds
+    setTimeout(() => {
+      if (!restTimerInterval) {
+        restTimerDock.classList.add('hidden');
+        document.title = "Lift Set Go - Zero-Friction Gym Tracker";
+      }
+    }, 4500);
+  }
+
+  // Float button click
+  if (btnTimerPip) {
+    btnTimerPip.addEventListener('click', () => {
+      triggerHaptic('light');
+      togglePictureInPicture();
+    });
   }
 
   btnTimerPlus30.addEventListener('click', () => {
     triggerHaptic('light');
-    restTimeRemaining += 30;
     restTotalDuration += 30;
+    restEndTime += 30 * 1000;
+    const now = Date.now();
+    restTimeRemaining = Math.max(0, Math.ceil((restEndTime - now) / 1000));
     updateTimerDisplay();
   });
 
@@ -718,6 +937,25 @@
     clearInterval(restTimerInterval);
     restTimerInterval = null;
     restTimerDock.classList.add('hidden');
+    document.title = "Lift Set Go - Zero-Friction Gym Tracker";
+    if (document.pictureInPictureElement) {
+      document.exitPictureInPicture().catch(() => {});
+    }
+  });
+
+  // Re-sync timestamp timer whenever user switches back to this app
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden && restTimerInterval && restEndTime > 0) {
+      const now = Date.now();
+      restTimeRemaining = Math.max(0, Math.ceil((restEndTime - now) / 1000));
+      if (restTimeRemaining <= 0) {
+        clearInterval(restTimerInterval);
+        restTimerInterval = null;
+        onRestTimerFinished();
+      } else {
+        updateTimerDisplay();
+      }
+    }
   });
 
   // --- Body Weight Quick Steppers ---
