@@ -52,6 +52,14 @@
           <span>Install</span>
         </button>
 
+        <!-- Screen Notifications Toggle -->
+        <button id="btn-notification-toggle" class="btn-icon" title="Allow Screen Pop-up Notifications" aria-label="Toggle Screen Notifications">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+            <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+          </svg>
+        </button>
+
         <!-- Screen Wake Lock Toggle -->
         <button id="btn-wakelock" class="btn-icon" title="Keep screen awake during workout" aria-label="Toggle Screen Awake">
           <svg id="icon-screen-lock" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -145,6 +153,25 @@
         </div>
         <div class="split-pills-container" id="split-pills">
           <!-- Populated by JS: Push, Pull, Legs, Upper, Lower, etc. -->
+        </div>
+      </section>
+
+      <!-- Dedicated Quick Rest Bar (For unrecorded or warm-up sets) -->
+      <section class="quick-rest-strip">
+        <div class="quick-rest-left">
+          <span class="quick-rest-icon">⏱️</span>
+          <div>
+            <div class="quick-rest-title">Dedicated Rest Timer</div>
+            <div class="quick-rest-sub">Take a rest without recording a set</div>
+          </div>
+        </div>
+        <div class="quick-rest-actions">
+          <button class="btn-rest-preset" data-sec="60">60s</button>
+          <button class="btn-rest-preset active" data-sec="90">90s</button>
+          <button class="btn-rest-preset" data-sec="120">2m</button>
+          <button id="btn-start-quick-rest" class="btn-start-quick-rest" title="Start rest timer without logging set">
+            Start Rest ⏱️
+          </button>
         </div>
       </section>
 

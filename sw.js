@@ -1,4 +1,4 @@
-const CACHE_NAME = 'liftsetgo-v6';
+const CACHE_NAME = 'liftsetgo-v7';
 const ASSETS_TO_CACHE = [
   './index.html',
   './style.css',
@@ -65,5 +65,22 @@ self.addEventListener('fetch', (event) => {
           }
         });
       })
+  );
+});
+
+// Notification click handler: Focus app when notification is tapped
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+      for (const client of clientList) {
+        if (client.url && 'focus' in client) {
+          return client.focus();
+        }
+      }
+      if (clients.openWindow) {
+        return clients.openWindow('./index.html');
+      }
+    })
   );
 });

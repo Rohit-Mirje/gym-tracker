@@ -813,42 +813,100 @@
     }
   }
 
-  function requestNotificationPermission() {
-    if ('Notification' in window && Notification.permission === 'default') {
-      try {
-        Notification.requestPermission();
-      } catch (e) {}
+  async function requestNotificationPermission() {
+    if (!('Notification' in window)) return false;
+    if (Notification.permission === 'granted') {
+      updateNotificationButtonState();
+      return true;
+    }
+    try {
+      const perm = await Notification.requestPermission();
+      updateNotificationButtonState();
+      return perm === 'granted';
+    } catch (e) {
+      return false;
     }
   }
 
-  function sendTimerNotification(exerciseName) {
+  const btnNotificationToggle = document.getElementById('btn-notification-toggle');
+
+  function updateNotificationButtonState() {
+    if (!btnNotificationToggle) return;
+    if ('Notification' in window && Notification.permission === 'granted') {
+      btnNotificationToggle.classList.add('notify-active');
+      btnNotificationToggle.title = "Screen Notifications: Active 🔔";
+    } else {
+      btnNotificationToggle.classList.remove('notify-active');
+      btnNotificationToggle.title = "Tap to Enable Screen Pop-up Notifications 🔔";
+    }
+  }
+
+  if (btnNotificationToggle) {
+    btnNotificationToggle.addEventListener('click', async () => {
+      triggerHaptic('light');
+      if (!('Notification' in window)) {
+        showToast("Notifications not supported in this browser");
+        return;
+      }
+      if (Notification.permission === 'granted') {
+        showToast("Screen notifications are active! 🔔 (Sending test pop-up...)");
+        sendTimerNotification("Notification Test");
+      } else {
+        const granted = await requestNotificationPermission();
+        if (granted) {
+          showToast("Screen notifications enabled! 🔔");
+          sendTimerNotification("Enabled");
+        } else if (Notification.permission === 'denied') {
+          showToast("Notifications blocked. Allow in site settings.");
+        }
+      }
+    });
+  }
+
+  // Update button state on initial load
+  updateNotificationButtonState();
+
+  async function sendTimerNotification(exerciseName) {
+    const title = "Rest Over! Time to Lift 💪";
+    const body = exerciseName ? `Your rest for ${exerciseName} has finished!` : "Rest interval complete. Time for your next set!";
+    const options = {
+      body: body,
+      icon: './icon-192.png',
+      badge: './icon-192.png',
+      tag: 'liftsetgo-rest-done',
+      renotify: true,
+      requireInteraction: true,
+      silent: false,
+      vibrate: [300, 150, 300, 150, 400],
+      data: { url: './index.html' }
+    };
+
+    // Priority 1: ServiceWorkerRegistration.showNotification (Required for Android & Mobile PWA Heads-Up Banner)
+    if ('serviceWorker' in navigator) {
+      try {
+        const reg = await navigator.serviceWorker.ready;
+        if (reg && reg.showNotification) {
+          await reg.showNotification(title, options);
+          return;
+        }
+      } catch (e) {
+        console.warn("SW notification error:", e);
+      }
+    }
+
+    // Priority 2: Standard Desktop Notification fallback
     if ('Notification' in window && Notification.permission === 'granted') {
       try {
-        new Notification("Rest Finished! 💪", {
-          body: `Time for your next set of ${exerciseName || 'exercise'}!`,
-          icon: './icon-192.png',
-          badge: './icon-192.png',
-          tag: 'rest-timer-finished',
-          renotify: true,
-          vibrate: [200, 100, 200, 100, 300]
-        });
+        new Notification(title, options);
       } catch (e) {
-        if (navigator.serviceWorker && navigator.serviceWorker.ready) {
-          navigator.serviceWorker.ready.then(reg => {
-            reg.showNotification("Rest Finished! 💪", {
-              body: `Time for your next set of ${exerciseName || 'exercise'}!`,
-              icon: './icon-192.png',
-              vibrate: [200, 100, 200, 100, 300]
-            });
-          }).catch(() => {});
-        }
+        console.warn("Desktop notification error:", e);
       }
     }
   }
 
-  function startRestTimer(exerciseName) {
+  function startRestTimer(exerciseName, customDuration) {
     currentTimerExercise = exerciseName || "Rest Interval";
-    restTimeRemaining = settings.defaultRestSec || 90;
+    restTimeRemaining = customDuration || settings.defaultRestSec || 90;
     restTotalDuration = restTimeRemaining;
     restEndTime = Date.now() + (restTimeRemaining * 1000);
 
@@ -957,6 +1015,29 @@
       }
     }
   });
+
+  // --- Dedicated Quick Rest Bar (Unrecorded Sets / Warm-ups) ---
+  let quickRestDuration = 90;
+  const btnStartQuickRest = document.getElementById('btn-start-quick-rest');
+
+  document.querySelectorAll('.btn-rest-preset').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      triggerHaptic('light');
+      document.querySelectorAll('.btn-rest-preset').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      quickRestDuration = parseInt(btn.dataset.sec, 10) || 90;
+    });
+  });
+
+  if (btnStartQuickRest) {
+    btnStartQuickRest.addEventListener('click', async () => {
+      triggerHaptic('light');
+      await requestNotificationPermission();
+      startRestTimer("Quick Rest", quickRestDuration);
+      showToast(`Started ${quickRestDuration}s Rest ⏱️`);
+    });
+  }
 
   // --- Body Weight Quick Steppers ---
   function adjustBodyWeight(delta) {
