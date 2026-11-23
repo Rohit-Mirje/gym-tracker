@@ -150,14 +150,14 @@
   // Rearrange / Reorder Workouts DOM Elements
   const modalReorder = document.getElementById('modal-reorder');
   const btnOpenReorder = document.getElementById('btn-open-reorder');
+  const btnReorderSplits = document.getElementById('btn-reorder-splits');
   const btnCloseReorderModal = document.getElementById('btn-close-reorder-modal');
   const btnDoneReorder = document.getElementById('btn-done-reorder');
   const reorderTodayList = document.getElementById('reorder-today-list');
-  const reorderTemplateList = document.getElementById('reorder-template-list');
+  const reorderSplitsList = document.getElementById('reorder-splits-list');
   const reorderSplitNameEl = document.getElementById('reorder-split-name');
   const chkSaveSplitOrder = document.getElementById('chk-save-split-order');
   const reorderModalTabs = document.querySelectorAll('#reorder-modal-tabs .modal-tab');
-  const reorderSplitPills = document.getElementById('reorder-split-pills');
   const exercisesCountTitle = document.getElementById('exercises-count-title');
 
   const toastEl = document.getElementById('toast');
@@ -1514,15 +1514,16 @@
     modalNotepad.classList.add('hidden');
   });
 
-  // Modal tab switching
-  const modalTabs = document.querySelectorAll('.modal-tab');
-  modalTabs.forEach(tab => {
+  // Modal tab switching for Notepad modal
+  const notepadModalTabs = document.querySelectorAll('#modal-notepad .modal-tab');
+  notepadModalTabs.forEach(tab => {
     tab.addEventListener('click', () => {
       triggerHaptic('light');
-      modalTabs.forEach(t => t.classList.remove('active'));
-      document.querySelectorAll('.modal-panel').forEach(p => p.classList.remove('active'));
+      notepadModalTabs.forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('#modal-notepad .modal-panel').forEach(p => p.classList.remove('active'));
       tab.classList.add('active');
-      document.getElementById(tab.dataset.modaltab).classList.add('active');
+      const targetPanel = document.getElementById(tab.dataset.modaltab);
+      if (targetPanel) targetPanel.classList.add('active');
     });
   });
 
@@ -1725,17 +1726,14 @@
     renderWorkoutView();
   }
 
-  // --- Rearrange Workouts Modal & Reorder Logic ---
-  let activeReorderTemplateSplit = currentSplit;
-
-  function openReorderModal() {
+  // --- Rearrange Workouts & Splits Logic ---
+  function openReorderModal(defaultTab = 'reorder-today') {
     if (!modalReorder) return;
     modalReorder.classList.remove('hidden');
 
-    // Default to Today's Routine tab
     if (reorderModalTabs) {
       reorderModalTabs.forEach(t => {
-        if (t.dataset.reordertab === 'reorder-today') {
+        if (t.dataset.reordertab === defaultTab) {
           t.classList.add('active');
         } else {
           t.classList.remove('active');
@@ -1744,16 +1742,29 @@
     }
     const pToday = document.getElementById('panel-reorder-today');
     const pSplits = document.getElementById('panel-reorder-splits');
-    if (pToday) pToday.classList.add('active');
-    if (pSplits) pSplits.classList.remove('active');
 
-    renderReorderTodayList();
+    if (defaultTab === 'reorder-today') {
+      if (pToday) pToday.classList.add('active');
+      if (pSplits) pSplits.classList.remove('active');
+      renderReorderTodayList();
+    } else {
+      if (pToday) pToday.classList.remove('active');
+      if (pSplits) pSplits.classList.add('active');
+      renderReorderSplitsList();
+    }
   }
 
   if (btnOpenReorder) {
     btnOpenReorder.addEventListener('click', () => {
       triggerHaptic('light');
-      openReorderModal();
+      openReorderModal('reorder-today');
+    });
+  }
+
+  if (btnReorderSplits) {
+    btnReorderSplits.addEventListener('click', () => {
+      triggerHaptic('light');
+      openReorderModal('reorder-splits');
     });
   }
 
@@ -1767,7 +1778,6 @@
   if (btnDoneReorder) {
     btnDoneReorder.addEventListener('click', () => {
       triggerHaptic('success');
-      // If saving split order as default is checked
       if (chkSaveSplitOrder && chkSaveSplitOrder.checked) {
         const todayWorkout = workouts[selectedDate];
         if (todayWorkout && todayWorkout.exercises && todayWorkout.exercises.length > 0) {
@@ -1778,13 +1788,15 @@
       }
       modalReorder.classList.add('hidden');
       renderWorkoutView();
-      showToast("Workout order saved! ✓");
+      renderSplitPills();
+      showToast("Workouts order saved! ✓");
     });
   }
 
   if (reorderModalTabs) {
     reorderModalTabs.forEach(tab => {
-      tab.addEventListener('click', () => {
+      tab.addEventListener('click', (e) => {
+        e.stopPropagation();
         triggerHaptic('light');
         reorderModalTabs.forEach(t => t.classList.remove('active'));
         tab.classList.add('active');
@@ -1799,12 +1811,13 @@
         } else {
           if (pToday) pToday.classList.remove('active');
           if (pSplits) pSplits.classList.add('active');
-          renderReorderTemplatePanel();
+          renderReorderSplitsList();
         }
       });
     });
   }
 
+  // Render list of exercises for today
   function renderReorderTodayList() {
     if (!reorderTodayList) return;
     reorderTodayList.innerHTML = '';
@@ -1816,7 +1829,7 @@
     }
 
     if (list.length === 0) {
-      reorderTodayList.innerHTML = `<p style="text-align:center; color:var(--text-dim); padding:16px;">No exercises for today to rearrange.</p>`;
+      reorderTodayList.innerHTML = `<p style="text-align:center; color:var(--text-dim); padding:16px;">No exercises in today's workout yet.<br><span style="font-size:0.75rem;">Add exercises to today or switch to the "Split Workouts" tab to reorder splits.</span></p>`;
       return;
     }
 
@@ -1896,41 +1909,19 @@
     renderWorkoutView();
   }
 
-  function renderReorderTemplatePanel() {
-    if (!reorderSplitPills || !reorderTemplateList) return;
-    reorderSplitPills.innerHTML = '';
+  // Render list of Split routines (Push, Pull, Legs, etc.)
+  function renderReorderSplitsList() {
+    if (!reorderSplitsList) return;
+    reorderSplitsList.innerHTML = '';
     const availableSplits = Object.keys(splits);
 
-    if (!splits[activeReorderTemplateSplit]) {
-      activeReorderTemplateSplit = availableSplits[0] || "Push";
-    }
-
-    availableSplits.forEach(splitName => {
-      const pill = document.createElement('button');
-      pill.className = `split-pill ${splitName === activeReorderTemplateSplit ? 'active' : ''}`;
-      pill.textContent = splitName;
-      pill.addEventListener('click', () => {
-        triggerHaptic('light');
-        activeReorderTemplateSplit = splitName;
-        renderReorderTemplatePanel();
-      });
-      reorderSplitPills.appendChild(pill);
-    });
-
-    reorderTemplateList.innerHTML = '';
-    const templateExercises = splits[activeReorderTemplateSplit] || [];
-
-    if (templateExercises.length === 0) {
-      reorderTemplateList.innerHTML = `<p style="text-align:center; color:var(--text-dim); padding:16px;">No exercises in ${escapeHTML(activeReorderTemplateSplit)} template.</p>`;
-      return;
-    }
-
-    templateExercises.forEach((name, idx) => {
+    availableSplits.forEach((splitName, idx) => {
       const item = document.createElement('div');
       item.className = 'reorder-item';
       item.dataset.index = idx;
       item.draggable = true;
 
+      const count = splits[splitName] ? splits[splitName].length : 0;
       item.innerHTML = `
         <div class="reorder-item-left">
           <span class="reorder-drag-handle" title="Drag to reorder">
@@ -1938,30 +1929,25 @@
           </span>
           <span class="reorder-pos-badge">${idx + 1}</span>
           <div class="reorder-item-info">
-            <div class="reorder-item-name">${escapeHTML(name)}</div>
-            <div class="reorder-item-sub">Default routine</div>
+            <div class="reorder-item-name">${escapeHTML(splitName)}</div>
+            <div class="reorder-item-sub">${count} default exercise${count > 1 ? 's' : ''}</div>
           </div>
         </div>
         <div class="reorder-item-steppers">
-          <button class="btn-reorder-step" data-action="tmpl-move-up" data-index="${idx}" ${idx === 0 ? 'disabled' : ''} aria-label="Move Up">▲</button>
-          <button class="btn-reorder-step" data-action="tmpl-move-down" data-index="${idx}" ${idx === templateExercises.length - 1 ? 'disabled' : ''} aria-label="Move Down">▼</button>
+          <button class="btn-reorder-step" data-action="split-move-up" data-index="${idx}" ${idx === 0 ? 'disabled' : ''} aria-label="Move Up">▲</button>
+          <button class="btn-reorder-step" data-action="split-move-down" data-index="${idx}" ${idx === availableSplits.length - 1 ? 'disabled' : ''} aria-label="Move Down">▼</button>
         </div>
       `;
 
-      const btnUp = item.querySelector('[data-action="tmpl-move-up"]');
-      const btnDown = item.querySelector('[data-action="tmpl-move-down"]');
+      const btnUp = item.querySelector('[data-action="split-move-up"]');
+      const btnDown = item.querySelector('[data-action="split-move-down"]');
 
       if (btnUp) {
         btnUp.addEventListener('click', (e) => {
           e.stopPropagation();
           if (idx > 0) {
             triggerHaptic('light');
-            const temp = templateExercises[idx];
-            templateExercises[idx] = templateExercises[idx - 1];
-            templateExercises[idx - 1] = temp;
-            splits[activeReorderTemplateSplit] = templateExercises;
-            saveToStorage(STORAGE_SPLITS, splits);
-            renderReorderTemplatePanel();
+            reorderSplits(idx, idx - 1);
           }
         });
       }
@@ -1969,44 +1955,53 @@
       if (btnDown) {
         btnDown.addEventListener('click', (e) => {
           e.stopPropagation();
-          if (idx < templateExercises.length - 1) {
+          if (idx < availableSplits.length - 1) {
             triggerHaptic('light');
-            const temp = templateExercises[idx];
-            templateExercises[idx] = templateExercises[idx + 1];
-            templateExercises[idx + 1] = temp;
-            splits[activeReorderTemplateSplit] = templateExercises;
-            saveToStorage(STORAGE_SPLITS, splits);
-            renderReorderTemplatePanel();
+            reorderSplits(idx, idx + 1);
           }
         });
       }
 
-      reorderTemplateList.appendChild(item);
+      reorderSplitsList.appendChild(item);
     });
 
-    setupReorderDragAndDrop(reorderTemplateList, (fromIdx, toIdx) => {
-      if (fromIdx === toIdx || fromIdx < 0 || toIdx < 0 || fromIdx >= templateExercises.length || toIdx >= templateExercises.length) return;
-      triggerHaptic('light');
-      const [moved] = templateExercises.splice(fromIdx, 1);
-      templateExercises.splice(toIdx, 0, moved);
-      splits[activeReorderTemplateSplit] = templateExercises;
-      saveToStorage(STORAGE_SPLITS, splits);
-      renderReorderTemplatePanel();
+    setupReorderDragAndDrop(reorderSplitsList, (fromIdx, toIdx) => {
+      reorderSplits(fromIdx, toIdx);
     });
   }
 
+  function reorderSplits(fromIdx, toIdx) {
+    const keys = Object.keys(splits);
+    if (fromIdx < 0 || toIdx < 0 || fromIdx >= keys.length || toIdx >= keys.length || fromIdx === toIdx) return;
+    triggerHaptic('light');
+    const [movedKey] = keys.splice(fromIdx, 1);
+    keys.splice(toIdx, 0, movedKey);
+
+    const newSplits = {};
+    keys.forEach(k => {
+      newSplits[k] = splits[k];
+    });
+    splits = newSplits;
+    saveToStorage(STORAGE_SPLITS, splits);
+    renderSplitPills();
+    renderReorderSplitsList();
+  }
+
+  // Unified drag-and-drop supporting both Mouse/Desktop and Mobile Touch
   function setupReorderDragAndDrop(container, onReorder) {
     let draggedItem = null;
-    let touchTarget = null;
+    let fromIndex = -1;
 
-    const items = container.querySelectorAll('.reorder-item');
+    const items = Array.from(container.querySelectorAll('.reorder-item'));
+
     items.forEach(item => {
-      // Desktop / Pointer Drag
+      // --- Desktop / Pointer Drag ---
       item.addEventListener('dragstart', (e) => {
         draggedItem = item;
+        fromIndex = parseInt(item.dataset.index, 10);
         item.classList.add('is-dragging');
         e.dataTransfer.effectAllowed = 'move';
-        e.dataTransfer.setData('text/plain', item.dataset.index);
+        e.dataTransfer.setData('text/plain', fromIndex);
       });
 
       item.addEventListener('dragover', (e) => {
@@ -2033,9 +2028,8 @@
         const target = e.currentTarget;
         target.classList.remove('drop-target-above', 'drop-target-below');
         if (draggedItem && target && draggedItem !== target) {
-          const fromIdx = parseInt(draggedItem.dataset.index, 10);
-          const toIdx = parseInt(target.dataset.index, 10);
-          onReorder(fromIdx, toIdx);
+          const toIndex = parseInt(target.dataset.index, 10);
+          onReorder(fromIndex, toIndex);
         }
       });
 
@@ -2045,46 +2039,77 @@
         draggedItem = null;
       });
 
-      // Mobile Touch Drag on Handle
+      // --- Mobile Touch Drag on the Handle ---
       const handle = item.querySelector('.reorder-drag-handle');
       if (handle) {
         handle.addEventListener('touchstart', (e) => {
+          if (e.touches.length !== 1) return;
           draggedItem = item;
+          fromIndex = parseInt(item.dataset.index, 10);
           item.classList.add('is-dragging');
-          touchTarget = null;
-        }, { passive: true });
+        }, { passive: false });
 
         handle.addEventListener('touchmove', (e) => {
           if (!draggedItem) return;
-          const touch = e.touches[0];
-          const el = document.elementFromPoint(touch.clientX, touch.clientY);
-          const targetItem = el ? el.closest('.reorder-item') : null;
+          if (e.cancelable) e.preventDefault(); // Prevents page scrolling while dragging!
 
-          items.forEach(it => it.classList.remove('drop-target-above', 'drop-target-below'));
-          if (targetItem && targetItem !== draggedItem) {
-            touchTarget = targetItem;
-            const rect = targetItem.getBoundingClientRect();
-            if (touch.clientY < rect.top + rect.height / 2) {
-              targetItem.classList.add('drop-target-above');
-            } else {
-              targetItem.classList.add('drop-target-below');
+          const touchY = e.touches[0].clientY;
+          const currentItems = Array.from(container.querySelectorAll('.reorder-item'));
+
+          currentItems.forEach(el => el.classList.remove('drop-target-above', 'drop-target-below'));
+
+          for (let it of currentItems) {
+            if (it === draggedItem) continue;
+            const rect = it.getBoundingClientRect();
+            if (touchY >= rect.top && touchY <= rect.bottom) {
+              if (touchY < rect.top + rect.height / 2) {
+                it.classList.add('drop-target-above');
+              } else {
+                it.classList.add('drop-target-below');
+              }
+              break;
             }
           }
-        }, { passive: true });
+        }, { passive: false });
 
-        handle.addEventListener('touchend', () => {
+        handle.addEventListener('touchend', (e) => {
+          if (!draggedItem) return;
+          draggedItem.classList.remove('is-dragging');
+
+          const touchY = (e.changedTouches && e.changedTouches.length) ? e.changedTouches[0].clientY : 0;
+          const currentItems = Array.from(container.querySelectorAll('.reorder-item'));
+
+          let targetIndex = fromIndex;
+
+          for (let it of currentItems) {
+            const rect = it.getBoundingClientRect();
+            if (touchY >= rect.top && touchY <= rect.bottom) {
+              targetIndex = parseInt(it.dataset.index, 10);
+              break;
+            }
+          }
+
+          if (currentItems.length > 0) {
+            const firstRect = currentItems[0].getBoundingClientRect();
+            const lastRect = currentItems[currentItems.length - 1].getBoundingClientRect();
+            if (touchY < firstRect.top) targetIndex = 0;
+            if (touchY > lastRect.bottom) targetIndex = currentItems.length - 1;
+          }
+
+          currentItems.forEach(el => el.classList.remove('drop-target-above', 'drop-target-below'));
+          draggedItem = null;
+
+          if (targetIndex !== fromIndex && targetIndex >= 0) {
+            onReorder(fromIndex, targetIndex);
+          }
+        });
+
+        handle.addEventListener('touchcancel', () => {
           if (draggedItem) {
             draggedItem.classList.remove('is-dragging');
-            if (touchTarget && touchTarget !== draggedItem) {
-              const fromIdx = parseInt(draggedItem.dataset.index, 10);
-              const toIdx = parseInt(touchTarget.dataset.index, 10);
-              touchTarget.classList.remove('drop-target-above', 'drop-target-below');
-              touchTarget = null;
-              onReorder(fromIdx, toIdx);
-            }
-            items.forEach(it => it.classList.remove('drop-target-above', 'drop-target-below'));
             draggedItem = null;
           }
+          container.querySelectorAll('.reorder-item').forEach(el => el.classList.remove('drop-target-above', 'drop-target-below'));
         });
       }
     });

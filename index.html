@@ -13,7 +13,7 @@
   <meta name="apple-mobile-web-app-title" content="Lift Set Go">
   <link rel="apple-touch-icon" href="./icon-192.png">
   <link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png">
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style.css?v=10">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
@@ -149,7 +149,10 @@
       <section class="split-selector-section">
         <div class="section-header">
           <span class="section-title">TODAY'S SPLIT</span>
-          <button id="btn-clear-today" class="btn-text-action danger" title="Clear all exercises for today">Clear Today</button>
+          <div class="header-actions">
+            <button id="btn-reorder-splits" class="btn-text-action" title="Rearrange split workouts">⇅ Rearrange</button>
+            <button id="btn-clear-today" class="btn-text-action danger" title="Clear all exercises for today">Clear Today</button>
+          </div>
         </div>
         <div class="split-pills-container" id="split-pills">
           <!-- Populated by JS: Push, Pull, Legs, Upper, Lower, etc. -->
@@ -433,21 +436,18 @@ Tricep Pushdown: 25kg 15 reps"></textarea>
 
         <div class="reorder-options">
           <label class="reorder-save-checkbox-label">
-            <input type="checkbox" id="chk-save-split-order" checked>
+            <input type="checkbox" id="chk-save-split-order">
             <span>Also save this order as default for <strong id="reorder-split-name">Push</strong> routine</span>
           </label>
         </div>
       </div>
 
-      <!-- Tab 2: Split Templates Panel -->
+      <!-- Tab 2: Split Workouts Panel -->
       <div id="panel-reorder-splits" class="modal-panel">
         <p class="modal-hint">
-          Select a split routine below to reorder its default template exercises:
+          Reorder your split routines (Push, Pull, Legs...). Tap <strong>▲ / ▼</strong> or drag <strong>⠿</strong> to change order:
         </p>
-        <div class="split-pills-container" id="reorder-split-pills" style="margin-bottom: 12px;">
-          <!-- Split selector buttons -->
-        </div>
-        <div class="reorder-list-container" id="reorder-template-list">
+        <div class="reorder-list-container" id="reorder-splits-list">
           <!-- Populated dynamically -->
         </div>
       </div>
@@ -463,6 +463,6 @@ Tricep Pushdown: 25kg 15 reps"></textarea>
   <!-- Toast Notification -->
   <div id="toast" class="toast hidden"></div>
 
-  <script src="app.js"></script>
+  <script src="app.js?v=10"></script>
 </body>
 </html>

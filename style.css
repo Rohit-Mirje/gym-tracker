@@ -652,8 +652,8 @@ body {
   background: var(--bg-input);
   border: 1px solid var(--border-subtle);
   color: var(--text-muted);
-  width: 28px;
-  height: 28px;
+  width: 34px;
+  height: 34px;
   border-radius: var(--radius-sm);
   display: flex;
   align-items: center;
@@ -1782,13 +1782,14 @@ body {
   background: var(--bg-card);
   border: 1px solid var(--border-subtle);
   color: var(--text-muted);
-  width: 32px;
-  height: 32px;
+  width: 36px;
+  height: 36px;
   border-radius: var(--radius-sm);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.75rem;
+  font-size: 0.85rem;
+  font-weight: 700;
   cursor: pointer;
   transition: all 0.15s ease;
   touch-action: manipulation;
