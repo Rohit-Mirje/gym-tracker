@@ -175,6 +175,15 @@
         </div>
       </section>
 
+      <!-- Exercises Section Header with Rearrange Action -->
+      <div class="exercises-section-header">
+        <span class="section-title" id="exercises-count-title">TODAY'S WORKOUTS</span>
+        <button id="btn-open-reorder" class="btn-text-action" title="Rearrange exercises order">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="vertical-align: -1px; margin-right: 3px;"><polyline points="7 15 12 20 17 15"/><polyline points="7 9 12 4 17 9"/><line x1="12" y1="4" x2="12" y2="20"/></svg>
+          Rearrange
+        </button>
+      </div>
+
       <!-- Exercises List for the Selected Split -->
       <section class="exercises-container" id="exercises-list">
         <!-- Rendered dynamically -->
@@ -392,6 +401,60 @@ Tricep Pushdown: 25kg 15 reps"></textarea>
       <div class="custom-exercise-create">
         <button id="btn-create-custom-exercise" class="btn-action primary">
           + Add "<span id="new-exercise-name-preview">Exercise</span>" to Today
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL 3: REARRANGE WORKOUTS / EXERCISES -->
+  <div id="modal-reorder" class="modal-overlay hidden">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div class="modal-title-wrap">
+          <span class="modal-icon">⇅</span>
+          <h3>Rearrange Workouts</h3>
+        </div>
+        <button class="btn-close-modal" id="btn-close-reorder-modal">✕</button>
+      </div>
+
+      <div class="modal-tabs" id="reorder-modal-tabs">
+        <button class="modal-tab active" data-reordertab="reorder-today">Today's Routine</button>
+        <button class="modal-tab" data-reordertab="reorder-splits">Split Templates</button>
+      </div>
+
+      <!-- Tab 1: Today's Routine Panel -->
+      <div id="panel-reorder-today" class="modal-panel active">
+        <p class="modal-hint">
+          Reorder today's exercises. Use the <strong>▲ / ▼ arrows</strong> or drag using <strong>⠿</strong> to move an exercise.
+        </p>
+        <div class="reorder-list-container" id="reorder-today-list">
+          <!-- Populated dynamically -->
+        </div>
+
+        <div class="reorder-options">
+          <label class="reorder-save-checkbox-label">
+            <input type="checkbox" id="chk-save-split-order" checked>
+            <span>Also save this order as default for <strong id="reorder-split-name">Push</strong> routine</span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Tab 2: Split Templates Panel -->
+      <div id="panel-reorder-splits" class="modal-panel">
+        <p class="modal-hint">
+          Select a split routine below to reorder its default template exercises:
+        </p>
+        <div class="split-pills-container" id="reorder-split-pills" style="margin-bottom: 12px;">
+          <!-- Split selector buttons -->
+        </div>
+        <div class="reorder-list-container" id="reorder-template-list">
+          <!-- Populated dynamically -->
+        </div>
+      </div>
+
+      <div class="modal-buttons" style="margin-top: 14px;">
+        <button id="btn-done-reorder" class="btn-action primary">
+          Done ✓
         </button>
       </div>
     </div>

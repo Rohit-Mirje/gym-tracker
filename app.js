@@ -147,6 +147,19 @@
   const btnCreateCustomExercise = document.getElementById('btn-create-custom-exercise');
   const newExerciseNamePreview = document.getElementById('new-exercise-name-preview');
 
+  // Rearrange / Reorder Workouts DOM Elements
+  const modalReorder = document.getElementById('modal-reorder');
+  const btnOpenReorder = document.getElementById('btn-open-reorder');
+  const btnCloseReorderModal = document.getElementById('btn-close-reorder-modal');
+  const btnDoneReorder = document.getElementById('btn-done-reorder');
+  const reorderTodayList = document.getElementById('reorder-today-list');
+  const reorderTemplateList = document.getElementById('reorder-template-list');
+  const reorderSplitNameEl = document.getElementById('reorder-split-name');
+  const chkSaveSplitOrder = document.getElementById('chk-save-split-order');
+  const reorderModalTabs = document.querySelectorAll('#reorder-modal-tabs .modal-tab');
+  const reorderSplitPills = document.getElementById('reorder-split-pills');
+  const exercisesCountTitle = document.getElementById('exercises-count-title');
+
   const toastEl = document.getElementById('toast');
 
   // --- Date Helper Functions ---
@@ -424,6 +437,13 @@
 
     const exercisesToRender = todayWorkout.exercises || [];
 
+    if (exercisesCountTitle) {
+      exercisesCountTitle.textContent = `TODAY'S WORKOUTS (${exercisesToRender.length})`;
+    }
+    if (btnOpenReorder) {
+      btnOpenReorder.style.display = exercisesToRender.length > 1 ? 'inline-flex' : 'none';
+    }
+
     if (exercisesToRender.length === 0) {
       const templateExercises = splits[currentSplit] || [];
       exercisesListContainer.innerHTML = `
@@ -458,13 +478,13 @@
 
     exercisesToRender.forEach((ex, exIndex) => {
       const bench = getPreviousBestOrLast(ex.name, selectedDate);
-      const card = createExerciseCardElement(ex, exIndex, bench);
+      const card = createExerciseCardElement(ex, exIndex, bench, exercisesToRender.length);
       exercisesListContainer.appendChild(card);
     });
   }
 
   // --- Create Single Exercise Card Element ---
-  function createExerciseCardElement(ex, exIndex, bench) {
+  function createExerciseCardElement(ex, exIndex, bench, totalExercises) {
     const card = document.createElement('article');
     card.className = `exercise-card ${ex.sets && ex.sets.length > 0 ? 'has-sets' : ''}`;
 
@@ -498,7 +518,15 @@
           </div>
           <div class="exercise-last-bench">${benchText}</div>
         </div>
-        <button class="btn-card-menu" title="Remove Exercise" data-action="delete-ex">✕</button>
+        <div class="exercise-header-actions">
+          <button class="btn-card-reorder" data-action="move-up" title="Move Up" ${exIndex === 0 ? 'disabled' : ''} aria-label="Move Up">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="18 15 12 9 6 15"/></svg>
+          </button>
+          <button class="btn-card-reorder" data-action="move-down" title="Move Down" ${exIndex === totalExercises - 1 ? 'disabled' : ''} aria-label="Move Down">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+          <button class="btn-card-menu" title="Remove Exercise" data-action="delete-ex">✕</button>
+        </div>
       </div>
 
       <!-- Quick 1-Tap & Stepper Matrix -->
@@ -558,6 +586,41 @@
     const repsInput = card.querySelector('.ex-reps-input');
     const btnLogSet = card.querySelector('[data-action="log-set"]');
     const btnDeleteEx = card.querySelector('[data-action="delete-ex"]');
+    const btnMoveUp = card.querySelector('[data-action="move-up"]');
+    const btnMoveDown = card.querySelector('[data-action="move-down"]');
+
+    // Move Exercise Up / Down in Today's workout
+    if (btnMoveUp) {
+      btnMoveUp.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (exIndex > 0) {
+          triggerHaptic('light');
+          const list = workouts[selectedDate].exercises;
+          const temp = list[exIndex];
+          list[exIndex] = list[exIndex - 1];
+          list[exIndex - 1] = temp;
+          saveToStorage(STORAGE_WORKOUTS, workouts);
+          renderWorkoutView();
+          showToast(`Moved "${ex.name}" up`);
+        }
+      });
+    }
+
+    if (btnMoveDown) {
+      btnMoveDown.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const list = workouts[selectedDate].exercises;
+        if (exIndex < list.length - 1) {
+          triggerHaptic('light');
+          const temp = list[exIndex];
+          list[exIndex] = list[exIndex + 1];
+          list[exIndex + 1] = temp;
+          saveToStorage(STORAGE_WORKOUTS, workouts);
+          renderWorkoutView();
+          showToast(`Moved "${ex.name}" down`);
+        }
+      });
+    }
 
     // Steppers click handling
     card.querySelectorAll('.btn-chip-step').forEach(btn => {
@@ -1660,6 +1723,371 @@
     }
     modalExercise.classList.add('hidden');
     renderWorkoutView();
+  }
+
+  // --- Rearrange Workouts Modal & Reorder Logic ---
+  let activeReorderTemplateSplit = currentSplit;
+
+  function openReorderModal() {
+    if (!modalReorder) return;
+    modalReorder.classList.remove('hidden');
+
+    // Default to Today's Routine tab
+    if (reorderModalTabs) {
+      reorderModalTabs.forEach(t => {
+        if (t.dataset.reordertab === 'reorder-today') {
+          t.classList.add('active');
+        } else {
+          t.classList.remove('active');
+        }
+      });
+    }
+    const pToday = document.getElementById('panel-reorder-today');
+    const pSplits = document.getElementById('panel-reorder-splits');
+    if (pToday) pToday.classList.add('active');
+    if (pSplits) pSplits.classList.remove('active');
+
+    renderReorderTodayList();
+  }
+
+  if (btnOpenReorder) {
+    btnOpenReorder.addEventListener('click', () => {
+      triggerHaptic('light');
+      openReorderModal();
+    });
+  }
+
+  if (btnCloseReorderModal) {
+    btnCloseReorderModal.addEventListener('click', () => {
+      triggerHaptic('light');
+      modalReorder.classList.add('hidden');
+    });
+  }
+
+  if (btnDoneReorder) {
+    btnDoneReorder.addEventListener('click', () => {
+      triggerHaptic('success');
+      // If saving split order as default is checked
+      if (chkSaveSplitOrder && chkSaveSplitOrder.checked) {
+        const todayWorkout = workouts[selectedDate];
+        if (todayWorkout && todayWorkout.exercises && todayWorkout.exercises.length > 0) {
+          const splitKey = todayWorkout.split || currentSplit;
+          splits[splitKey] = todayWorkout.exercises.map(e => e.name);
+          saveToStorage(STORAGE_SPLITS, splits);
+        }
+      }
+      modalReorder.classList.add('hidden');
+      renderWorkoutView();
+      showToast("Workout order saved! ✓");
+    });
+  }
+
+  if (reorderModalTabs) {
+    reorderModalTabs.forEach(tab => {
+      tab.addEventListener('click', () => {
+        triggerHaptic('light');
+        reorderModalTabs.forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+        const targetTab = tab.dataset.reordertab;
+        const pToday = document.getElementById('panel-reorder-today');
+        const pSplits = document.getElementById('panel-reorder-splits');
+
+        if (targetTab === 'reorder-today') {
+          if (pToday) pToday.classList.add('active');
+          if (pSplits) pSplits.classList.remove('active');
+          renderReorderTodayList();
+        } else {
+          if (pToday) pToday.classList.remove('active');
+          if (pSplits) pSplits.classList.add('active');
+          renderReorderTemplatePanel();
+        }
+      });
+    });
+  }
+
+  function renderReorderTodayList() {
+    if (!reorderTodayList) return;
+    reorderTodayList.innerHTML = '';
+    const todayWorkout = workouts[selectedDate];
+    const list = (todayWorkout && todayWorkout.exercises) ? todayWorkout.exercises : [];
+
+    if (reorderSplitNameEl) {
+      reorderSplitNameEl.textContent = (todayWorkout && todayWorkout.split) ? todayWorkout.split : currentSplit;
+    }
+
+    if (list.length === 0) {
+      reorderTodayList.innerHTML = `<p style="text-align:center; color:var(--text-dim); padding:16px;">No exercises for today to rearrange.</p>`;
+      return;
+    }
+
+    list.forEach((ex, idx) => {
+      const item = document.createElement('div');
+      item.className = 'reorder-item';
+      item.dataset.index = idx;
+      item.draggable = true;
+
+      const setsCount = (ex.sets && ex.sets.length) ? ex.sets.length : 0;
+      item.innerHTML = `
+        <div class="reorder-item-left">
+          <span class="reorder-drag-handle" title="Drag to reorder">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="5" r="1"/><circle cx="9" cy="12" r="1"/><circle cx="9" cy="19" r="1"/><circle cx="15" cy="5" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="15" cy="19" r="1"/></svg>
+          </span>
+          <span class="reorder-pos-badge">${idx + 1}</span>
+          <div class="reorder-item-info">
+            <div class="reorder-item-name">${escapeHTML(ex.name)}</div>
+            <div class="reorder-item-sub">${setsCount > 0 ? `${setsCount} set${setsCount > 1 ? 's' : ''} logged` : 'No sets yet'}</div>
+          </div>
+        </div>
+        <div class="reorder-item-steppers">
+          <button class="btn-reorder-step" data-action="modal-move-up" data-index="${idx}" ${idx === 0 ? 'disabled' : ''} aria-label="Move Up">▲</button>
+          <button class="btn-reorder-step" data-action="modal-move-down" data-index="${idx}" ${idx === list.length - 1 ? 'disabled' : ''} aria-label="Move Down">▼</button>
+        </div>
+      `;
+
+      const btnUp = item.querySelector('[data-action="modal-move-up"]');
+      const btnDown = item.querySelector('[data-action="modal-move-down"]');
+
+      if (btnUp) {
+        btnUp.addEventListener('click', (e) => {
+          e.stopPropagation();
+          if (idx > 0) {
+            triggerHaptic('light');
+            swapTodayExercises(idx, idx - 1);
+          }
+        });
+      }
+
+      if (btnDown) {
+        btnDown.addEventListener('click', (e) => {
+          e.stopPropagation();
+          if (idx < list.length - 1) {
+            triggerHaptic('light');
+            swapTodayExercises(idx, idx + 1);
+          }
+        });
+      }
+
+      reorderTodayList.appendChild(item);
+    });
+
+    setupReorderDragAndDrop(reorderTodayList, (fromIdx, toIdx) => {
+      moveTodayExercise(fromIdx, toIdx);
+    });
+  }
+
+  function swapTodayExercises(i, j) {
+    const list = workouts[selectedDate].exercises;
+    const temp = list[i];
+    list[i] = list[j];
+    list[j] = temp;
+    saveToStorage(STORAGE_WORKOUTS, workouts);
+    renderReorderTodayList();
+    renderWorkoutView();
+  }
+
+  function moveTodayExercise(fromIdx, toIdx) {
+    const list = workouts[selectedDate].exercises;
+    if (fromIdx === toIdx || fromIdx < 0 || toIdx < 0 || fromIdx >= list.length || toIdx >= list.length) return;
+    triggerHaptic('light');
+    const [moved] = list.splice(fromIdx, 1);
+    list.splice(toIdx, 0, moved);
+    saveToStorage(STORAGE_WORKOUTS, workouts);
+    renderReorderTodayList();
+    renderWorkoutView();
+  }
+
+  function renderReorderTemplatePanel() {
+    if (!reorderSplitPills || !reorderTemplateList) return;
+    reorderSplitPills.innerHTML = '';
+    const availableSplits = Object.keys(splits);
+
+    if (!splits[activeReorderTemplateSplit]) {
+      activeReorderTemplateSplit = availableSplits[0] || "Push";
+    }
+
+    availableSplits.forEach(splitName => {
+      const pill = document.createElement('button');
+      pill.className = `split-pill ${splitName === activeReorderTemplateSplit ? 'active' : ''}`;
+      pill.textContent = splitName;
+      pill.addEventListener('click', () => {
+        triggerHaptic('light');
+        activeReorderTemplateSplit = splitName;
+        renderReorderTemplatePanel();
+      });
+      reorderSplitPills.appendChild(pill);
+    });
+
+    reorderTemplateList.innerHTML = '';
+    const templateExercises = splits[activeReorderTemplateSplit] || [];
+
+    if (templateExercises.length === 0) {
+      reorderTemplateList.innerHTML = `<p style="text-align:center; color:var(--text-dim); padding:16px;">No exercises in ${escapeHTML(activeReorderTemplateSplit)} template.</p>`;
+      return;
+    }
+
+    templateExercises.forEach((name, idx) => {
+      const item = document.createElement('div');
+      item.className = 'reorder-item';
+      item.dataset.index = idx;
+      item.draggable = true;
+
+      item.innerHTML = `
+        <div class="reorder-item-left">
+          <span class="reorder-drag-handle" title="Drag to reorder">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="5" r="1"/><circle cx="9" cy="12" r="1"/><circle cx="9" cy="19" r="1"/><circle cx="15" cy="5" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="15" cy="19" r="1"/></svg>
+          </span>
+          <span class="reorder-pos-badge">${idx + 1}</span>
+          <div class="reorder-item-info">
+            <div class="reorder-item-name">${escapeHTML(name)}</div>
+            <div class="reorder-item-sub">Default routine</div>
+          </div>
+        </div>
+        <div class="reorder-item-steppers">
+          <button class="btn-reorder-step" data-action="tmpl-move-up" data-index="${idx}" ${idx === 0 ? 'disabled' : ''} aria-label="Move Up">▲</button>
+          <button class="btn-reorder-step" data-action="tmpl-move-down" data-index="${idx}" ${idx === templateExercises.length - 1 ? 'disabled' : ''} aria-label="Move Down">▼</button>
+        </div>
+      `;
+
+      const btnUp = item.querySelector('[data-action="tmpl-move-up"]');
+      const btnDown = item.querySelector('[data-action="tmpl-move-down"]');
+
+      if (btnUp) {
+        btnUp.addEventListener('click', (e) => {
+          e.stopPropagation();
+          if (idx > 0) {
+            triggerHaptic('light');
+            const temp = templateExercises[idx];
+            templateExercises[idx] = templateExercises[idx - 1];
+            templateExercises[idx - 1] = temp;
+            splits[activeReorderTemplateSplit] = templateExercises;
+            saveToStorage(STORAGE_SPLITS, splits);
+            renderReorderTemplatePanel();
+          }
+        });
+      }
+
+      if (btnDown) {
+        btnDown.addEventListener('click', (e) => {
+          e.stopPropagation();
+          if (idx < templateExercises.length - 1) {
+            triggerHaptic('light');
+            const temp = templateExercises[idx];
+            templateExercises[idx] = templateExercises[idx + 1];
+            templateExercises[idx + 1] = temp;
+            splits[activeReorderTemplateSplit] = templateExercises;
+            saveToStorage(STORAGE_SPLITS, splits);
+            renderReorderTemplatePanel();
+          }
+        });
+      }
+
+      reorderTemplateList.appendChild(item);
+    });
+
+    setupReorderDragAndDrop(reorderTemplateList, (fromIdx, toIdx) => {
+      if (fromIdx === toIdx || fromIdx < 0 || toIdx < 0 || fromIdx >= templateExercises.length || toIdx >= templateExercises.length) return;
+      triggerHaptic('light');
+      const [moved] = templateExercises.splice(fromIdx, 1);
+      templateExercises.splice(toIdx, 0, moved);
+      splits[activeReorderTemplateSplit] = templateExercises;
+      saveToStorage(STORAGE_SPLITS, splits);
+      renderReorderTemplatePanel();
+    });
+  }
+
+  function setupReorderDragAndDrop(container, onReorder) {
+    let draggedItem = null;
+    let touchTarget = null;
+
+    const items = container.querySelectorAll('.reorder-item');
+    items.forEach(item => {
+      // Desktop / Pointer Drag
+      item.addEventListener('dragstart', (e) => {
+        draggedItem = item;
+        item.classList.add('is-dragging');
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', item.dataset.index);
+      });
+
+      item.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        const target = e.currentTarget;
+        if (target && target !== draggedItem) {
+          items.forEach(el => el.classList.remove('drop-target-above', 'drop-target-below'));
+          const rect = target.getBoundingClientRect();
+          if (e.clientY < rect.top + rect.height / 2) {
+            target.classList.add('drop-target-above');
+          } else {
+            target.classList.add('drop-target-below');
+          }
+        }
+      });
+
+      item.addEventListener('dragleave', (e) => {
+        e.currentTarget.classList.remove('drop-target-above', 'drop-target-below');
+      });
+
+      item.addEventListener('drop', (e) => {
+        e.preventDefault();
+        const target = e.currentTarget;
+        target.classList.remove('drop-target-above', 'drop-target-below');
+        if (draggedItem && target && draggedItem !== target) {
+          const fromIdx = parseInt(draggedItem.dataset.index, 10);
+          const toIdx = parseInt(target.dataset.index, 10);
+          onReorder(fromIdx, toIdx);
+        }
+      });
+
+      item.addEventListener('dragend', () => {
+        if (draggedItem) draggedItem.classList.remove('is-dragging');
+        items.forEach(el => el.classList.remove('drop-target-above', 'drop-target-below'));
+        draggedItem = null;
+      });
+
+      // Mobile Touch Drag on Handle
+      const handle = item.querySelector('.reorder-drag-handle');
+      if (handle) {
+        handle.addEventListener('touchstart', (e) => {
+          draggedItem = item;
+          item.classList.add('is-dragging');
+          touchTarget = null;
+        }, { passive: true });
+
+        handle.addEventListener('touchmove', (e) => {
+          if (!draggedItem) return;
+          const touch = e.touches[0];
+          const el = document.elementFromPoint(touch.clientX, touch.clientY);
+          const targetItem = el ? el.closest('.reorder-item') : null;
+
+          items.forEach(it => it.classList.remove('drop-target-above', 'drop-target-below'));
+          if (targetItem && targetItem !== draggedItem) {
+            touchTarget = targetItem;
+            const rect = targetItem.getBoundingClientRect();
+            if (touch.clientY < rect.top + rect.height / 2) {
+              targetItem.classList.add('drop-target-above');
+            } else {
+              targetItem.classList.add('drop-target-below');
+            }
+          }
+        }, { passive: true });
+
+        handle.addEventListener('touchend', () => {
+          if (draggedItem) {
+            draggedItem.classList.remove('is-dragging');
+            if (touchTarget && touchTarget !== draggedItem) {
+              const fromIdx = parseInt(draggedItem.dataset.index, 10);
+              const toIdx = parseInt(touchTarget.dataset.index, 10);
+              touchTarget.classList.remove('drop-target-above', 'drop-target-below');
+              touchTarget = null;
+              onReorder(fromIdx, toIdx);
+            }
+            items.forEach(it => it.classList.remove('drop-target-above', 'drop-target-below'));
+            draggedItem = null;
+          }
+        });
+      }
+    });
   }
 
   // --- Initialize App ---
