@@ -1109,12 +1109,132 @@
         renderHistoryTab();
       } else if (targetId === 'tab-bodyweight') {
         renderBodyWeightTab();
+      } else if (targetId === 'tab-workout') {
+        renderWorkoutView();
       }
     });
   });
 
+  // --- Tracking Calendar State & Logic ---
+  let calCurrentYear = new Date().getFullYear();
+  let calCurrentMonth = new Date().getMonth();
+
+  function renderTrackingCalendar() {
+    const monthYearEl = document.getElementById('calendar-month-year');
+    const monthStatsEl = document.getElementById('calendar-month-stats');
+    const gridEl = document.getElementById('calendar-days-grid');
+    if (!gridEl || !monthYearEl) return;
+
+    gridEl.innerHTML = '';
+
+    const monthNames = [
+      "January", "February", "March", "April", "May", "June",
+      "July", "August", "September", "October", "November", "December"
+    ];
+
+    monthYearEl.textContent = `${monthNames[calCurrentMonth]} ${calCurrentYear}`;
+
+    // Compute first day of month (Monday as first column)
+    const firstDay = new Date(calCurrentYear, calCurrentMonth, 1);
+    let startDayOfWeek = firstDay.getDay(); // 0 is Sun, 1 is Mon...
+    startDayOfWeek = (startDayOfWeek === 0) ? 6 : startDayOfWeek - 1; // 0=Mon ... 6=Sun
+
+    const daysInMonth = new Date(calCurrentYear, calCurrentMonth + 1, 0).getDate();
+    const todayKey = getTodayDateString();
+
+    let workoutsThisMonth = 0;
+
+    // Fill leading empty cells
+    for (let i = 0; i < startDayOfWeek; i++) {
+      const emptyCell = document.createElement('div');
+      emptyCell.className = 'cal-day empty';
+      gridEl.appendChild(emptyCell);
+    }
+
+    // Fill days of the month
+    for (let d = 1; d <= daysInMonth; d++) {
+      const dayStr = String(d).padStart(2, '0');
+      const monthStr = String(calCurrentMonth + 1).padStart(2, '0');
+      const dateKey = `${calCurrentYear}-${monthStr}-${dayStr}`;
+
+      const cell = document.createElement('div');
+      cell.className = 'cal-day';
+      cell.textContent = d;
+
+      // Check if workout record is added on that day (turns green!)
+      const w = workouts[dateKey];
+      const hasWorkout = !!(w && w.exercises && w.exercises.some(e => e.sets && e.sets.length > 0));
+
+      if (hasWorkout) {
+        cell.classList.add('has-workout');
+        workoutsThisMonth++;
+      }
+
+      if (dateKey === todayKey) {
+        cell.classList.add('is-today');
+      }
+
+      if (dateKey === selectedDate) {
+        cell.classList.add('is-selected');
+      }
+
+      cell.title = hasWorkout ? `Workout recorded on ${dateKey}` : dateKey;
+
+      cell.addEventListener('click', () => {
+        triggerHaptic('light');
+        selectedDate = dateKey;
+        // Jump directly to Workout view for that date
+        document.querySelector('.nav-tab[data-tab="tab-workout"]').click();
+      });
+
+      gridEl.appendChild(cell);
+    }
+
+    // Update month stats badge
+    if (monthStatsEl) {
+      if (workoutsThisMonth === 0) {
+        monthStatsEl.textContent = "0 workouts logged this month";
+        monthStatsEl.style.color = "var(--text-dim)";
+      } else {
+        monthStatsEl.textContent = `🔥 ${workoutsThisMonth} workout${workoutsThisMonth > 1 ? 's' : ''} logged this month!`;
+        monthStatsEl.style.color = "var(--primary)";
+      }
+    }
+  }
+
+  // Calendar prev/next buttons
+  const btnCalPrev = document.getElementById('btn-cal-prev');
+  const btnCalNext = document.getElementById('btn-cal-next');
+
+  if (btnCalPrev) {
+    btnCalPrev.addEventListener('click', () => {
+      triggerHaptic('light');
+      calCurrentMonth--;
+      if (calCurrentMonth < 0) {
+        calCurrentMonth = 11;
+        calCurrentYear--;
+      }
+      renderTrackingCalendar();
+    });
+  }
+
+  if (btnCalNext) {
+    btnCalNext.addEventListener('click', () => {
+      triggerHaptic('light');
+      calCurrentMonth++;
+      if (calCurrentMonth > 11) {
+        calCurrentMonth = 0;
+        calCurrentYear++;
+      }
+      renderTrackingCalendar();
+    });
+  }
+
   // --- Tab 2: Render History ---
   function renderHistoryTab() {
+    // Render the tracking calendar first so it's always up to date
+    renderTrackingCalendar();
+
     const historyContainer = document.getElementById('history-items-container');
     const historyCount = document.getElementById('history-total-count');
 
@@ -1130,9 +1250,9 @@
 
     if (recordedDates.length === 0) {
       historyContainer.innerHTML = `
-        <div style="text-align: center; padding: 40px 16px; color: var(--text-dim);">
+        <div style="text-align: center; padding: 32px 16px; color: var(--text-dim);">
           <p>No completed workouts found yet.</p>
-          <p style="font-size: 0.8rem; margin-top: 4px;">Log a set on the Workout tab to build your streak!</p>
+          <p style="font-size: 0.8rem; margin-top: 4px;">Log a set on the Workout tab to light up your calendar!</p>
         </div>
       `;
       return;

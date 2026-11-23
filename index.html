@@ -197,6 +197,41 @@
         <span class="history-count" id="history-total-count">0 workouts</span>
       </div>
 
+      <!-- Workout Tracking Calendar -->
+      <div class="calendar-card">
+        <div class="calendar-nav-bar">
+          <button id="btn-cal-prev" class="btn-cal-step" aria-label="Previous Month">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+          </button>
+          <div class="calendar-title-wrap">
+            <h3 id="calendar-month-year" class="calendar-month-title">Month Year</h3>
+            <span id="calendar-month-stats" class="calendar-month-stats">0 workouts logged</span>
+          </div>
+          <button id="btn-cal-next" class="btn-cal-step" aria-label="Next Month">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+          </button>
+        </div>
+
+        <div class="calendar-weekdays">
+          <span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span><span>Su</span>
+        </div>
+
+        <div id="calendar-days-grid" class="calendar-days-grid">
+          <!-- Populated by JS: Days turn emerald green when workout is recorded -->
+        </div>
+
+        <div class="calendar-legend">
+          <div class="legend-item">
+            <span class="legend-dot green"></span>
+            <span>Workout Logged</span>
+          </div>
+          <div class="legend-item">
+            <span class="legend-dot today"></span>
+            <span>Today</span>
+          </div>
+        </div>
+      </div>
+
       <div class="history-list" id="history-items-container">
         <!-- Populated dynamically -->
       </div>
